@@ -52,8 +52,8 @@
                         const was    = this.isPublic;
                         this.isPublic = !this.isPublic;
                         try {
-                            const res = await fetch('/prompts/' + this.id + '/update', {
-                                method: 'POST',
+                            const res = await fetch('/prompts/' + this.id, {
+                                method: 'PATCH',
                                 headers: { 'X-CSRF-TOKEN': this.csrf, 'Content-Type': 'application/json', 'Accept': 'application/json' },
                                 body: JSON.stringify({ is_public: this.isPublic }),
                             });
@@ -67,8 +67,8 @@
                         this.saving = true;
                         this.error  = '';
                         try {
-                            const res = await fetch('/prompts/' + this.id + '/update', {
-                                method: 'POST',
+                            const res = await fetch('/prompts/' + this.id, {
+                                method: 'PATCH',
                                 headers: { 'X-CSRF-TOKEN': this.csrf, 'Content-Type': 'application/json', 'Accept': 'application/json' },
                                 body: JSON.stringify({ name: this.editName.trim() }),
                             });
@@ -82,8 +82,8 @@
                         this.deleting = true;
                         this.error    = '';
                         try {
-                            const res = await fetch('/prompts/' + this.id + '/delete', {
-                                method: 'POST',
+                            const res = await fetch('/prompts/' + this.id, {
+                                method: 'DELETE',
                                 headers: { 'X-CSRF-TOKEN': this.csrf, 'Accept': 'application/json' },
                             });
                             if (res.ok) { $el.remove(); }

@@ -24,6 +24,6 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
 Route::middleware('auth')->group(function () {
     Route::get('/my-prompts',                  [PromptController::class, 'index']);
     Route::post('/prompts',                    [PromptController::class, 'store']);
-    Route::post('/prompts/{prompt}/update',    [PromptController::class, 'update']);
-    Route::post('/prompts/{prompt}/delete',    [PromptController::class, 'destroy']);
+    Route::patch('/prompts/{prompt}',          [PromptController::class, 'update']);
+    Route::delete('/prompts/{prompt}',         [PromptController::class, 'destroy']);
 });
