@@ -1,5 +1,4 @@
 <x-layouts.app>
-{{-- Auth & CSRF available to Alpine --}}
 <script>
   window.__auth  = @json(auth()->check());
   window.__csrf  = '{{ csrf_token() }}';
@@ -9,46 +8,51 @@
 <div
     x-data="promptBuilder()"
     x-init="init()"
-    class="flex flex-col h-screen overflow-hidden"
+    class="flex flex-col h-[100dvh] overflow-hidden bg-slate-950"
 >
-    {{-- ── HEADER ──────────────────────────────────────────────────────── --}}
-    <header class="shrink-0 border-b border-slate-800 bg-slate-900/70 backdrop-blur px-4 py-2.5 z-20">
-        <div class="max-w-screen-2xl mx-auto flex items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-                <a href="/" class="text-base font-bold text-white tracking-tight hover:text-brand-400 transition-colors">{{ __('ui.app_name') }}</a>
-                <span class="text-xs text-slate-600">·</span>
-                <span class="text-xs text-slate-500">{{ __('ui.tags_count', ['count' => number_format($totalTags)]) }}</span>
+
+    {{-- ─────────────────────────────────────────────────────────────────────
+         HEADER (full-width, always visible)
+    ─────────────────────────────────────────────────────────────────────── --}}
+    <header class="shrink-0 z-20 border-b border-slate-800 bg-slate-900/80 backdrop-blur px-3 sm:px-4 py-2.5">
+        <div class="flex items-center justify-between gap-2">
+
+            <div class="flex items-center gap-2 min-w-0">
+                <a href="/" class="text-sm sm:text-base font-bold text-white tracking-tight hover:text-brand-400 transition-colors whitespace-nowrap">{{ __('ui.app_name') }}</a>
+                <span class="hidden sm:inline text-xs text-slate-600">·</span>
+                <span class="hidden sm:inline text-xs text-slate-500 whitespace-nowrap">{{ __('ui.tags_count', ['count' => number_format($totalTags)]) }}</span>
             </div>
 
-            <div class="flex items-center gap-2">
-                {{-- NSFW Toggle --}}
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                {{-- NSFW toggle --}}
                 <button
                     @click="nsfwEnabled = !nsfwEnabled; loadSection(activeSection)"
                     :class="nsfwEnabled
                         ? 'bg-rose-600/90 border-rose-500 text-white'
-                        : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500'"
-                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-bold transition-all"
+                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'"
+                    class="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-md border text-[11px] sm:text-xs font-bold transition-all"
                 >
-                    <span x-text="nsfwEnabled ? '🔞 NSFW ON' : '🔒 NSFW OFF'"></span>
+                    <span x-text="nsfwEnabled ? '🔞' : '🔒'" class="sm:hidden"></span>
+                    <span class="hidden sm:inline" x-text="nsfwEnabled ? '🔞 NSFW ON' : '🔒 NSFW OFF'"></span>
                 </button>
 
                 {{-- My Prompts (auth only) --}}
                 @auth
                 <a href="/my-prompts"
-                   class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800/80 border border-slate-700 text-slate-300 text-xs font-medium hover:border-brand-500 hover:text-white transition-all">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   class="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300 hover:border-brand-500 hover:text-white transition-all">
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
                     </svg>
-                    My Prompts
+                    <span class="hidden sm:inline text-xs font-medium">My Prompts</span>
                 </a>
                 @endauth
 
-                {{-- Clear all --}}
+                {{-- Clear (desktop only; mobile has it in the expanded sheet) --}}
                 <button
                     @click="clearAll()"
                     x-show="Object.keys(selected).length > 0"
                     x-transition
-                    class="px-3 py-1.5 rounded-md bg-slate-700/80 hover:bg-slate-600 text-slate-300 text-xs font-medium transition-colors border border-slate-600"
+                    class="hidden sm:block px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium transition-colors border border-slate-600"
                 >
                     {{ __('ui.clear_all') }}
                 </button>
@@ -56,18 +60,42 @@
         </div>
     </header>
 
-    {{-- ── BODY ─────────────────────────────────────────────────────────── --}}
-    <div class="flex flex-1 min-h-0">
+    {{-- ─────────────────────────────────────────────────────────────────────
+         MOBILE: horizontal section tabs (hidden on lg+)
+    ─────────────────────────────────────────────────────────────────────── --}}
+    <div class="lg:hidden shrink-0 flex gap-1.5 px-3 py-2 overflow-x-auto border-b border-slate-800 bg-slate-900/50" style="-webkit-overflow-scrolling:touch;scrollbar-width:none;">
+        @foreach(['character','pose','outfit','scene'] as $sec)
+        <button
+            @click="switchSection('{{ $sec }}')"
+            :class="activeSection === '{{ $sec }}'
+                ? 'bg-brand-600 text-white border-brand-600'
+                : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'"
+            class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold whitespace-nowrap transition-all"
+        >
+            {{ __('ui.sections.' . $sec) }}
+            <span
+                x-show="countBySection['{{ $sec }}'] > 0"
+                x-text="countBySection['{{ $sec }}']"
+                class="text-[10px] font-bold bg-white/20 rounded-full px-1.5 leading-none"
+            ></span>
+        </button>
+        @endforeach
+    </div>
 
-        {{-- ── LEFT NAV: section tabs ──────────────────────────────────── --}}
-        <nav class="shrink-0 w-40 border-r border-slate-800 bg-slate-900/50 flex flex-col py-3 px-2 gap-0.5 overflow-y-auto">
+    {{-- ─────────────────────────────────────────────────────────────────────
+         MAIN ROW
+    ─────────────────────────────────────────────────────────────────────── --}}
+    <div class="flex-1 flex min-h-0">
+
+        {{-- DESKTOP LEFT: section sidebar (hidden below lg) --}}
+        <nav class="hidden lg:flex shrink-0 w-44 border-r border-slate-800 bg-slate-900/50 flex-col py-3 px-2 gap-0.5 overflow-y-auto">
             @foreach(['character','pose','outfit','scene'] as $sec)
             <button
                 @click="switchSection('{{ $sec }}')"
                 :class="activeSection === '{{ $sec }}'
                     ? 'bg-brand-600 text-white shadow'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-white/6'"
-                class="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-semibold transition-all text-left"
+                class="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-semibold transition-all text-left"
             >
                 <span>{{ __('ui.sections.' . $sec) }}</span>
                 <span
@@ -79,16 +107,16 @@
             @endforeach
 
             <div class="mt-auto pt-3 border-t border-slate-800/60 px-1">
-                <p class="text-[10px] text-slate-600 uppercase tracking-wider mb-1">Total tags</p>
-                <p class="text-xl font-bold text-brand-400" x-text="Object.keys(selected).length"></p>
+                <p class="text-[10px] text-slate-600 uppercase tracking-wider mb-1">Total</p>
+                <p class="text-2xl font-bold text-brand-400" x-text="Object.keys(selected).length"></p>
             </div>
         </nav>
 
-        {{-- ── CENTER: tag browser ─────────────────────────────────────── --}}
+        {{-- CENTER: tag browser --}}
         <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
 
-            {{-- Sticky search --}}
-            <div class="shrink-0 sticky top-0 z-10 bg-slate-950/95 backdrop-blur border-b border-slate-800 px-4 py-2">
+            {{-- Search --}}
+            <div class="shrink-0 bg-slate-950/95 backdrop-blur border-b border-slate-800 px-3 sm:px-4 py-2">
                 <div class="relative">
                     <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -98,13 +126,9 @@
                         x-model.debounce.250ms="searchQuery"
                         @input="filterTags()"
                         placeholder="{{ __('ui.search_tags') }}"
-                        class="w-full bg-slate-800/60 border border-slate-700/60 rounded-lg pl-9 pr-3 py-1.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/50 transition-colors"
+                        class="w-full bg-slate-800/60 border border-slate-700/60 rounded-lg pl-9 pr-8 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/50 transition-colors"
                     >
-                    <button
-                        x-show="searchQuery.length > 0"
-                        @click="searchQuery = ''; filterTags()"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-                    >✕</button>
+                    <button x-show="searchQuery.length > 0" @click="searchQuery = ''; filterTags()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">✕</button>
                 </div>
             </div>
 
@@ -123,7 +147,7 @@
                     <div x-data="{ open: true, showAll: false }">
                         <button
                             @click="open = !open"
-                            class="flex items-center justify-between w-full px-4 py-2.5 text-left hover:bg-white/3 transition-colors group"
+                            class="flex items-center justify-between w-full px-3 sm:px-4 py-2.5 text-left hover:bg-white/3 transition-colors group"
                         >
                             <div class="flex items-center gap-2">
                                 <svg :class="open ? 'rotate-90' : ''" class="w-3 h-3 text-slate-600 group-hover:text-slate-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,9 +163,9 @@
                             ></span>
                         </button>
 
-                        <div x-show="open" class="px-4 pb-3 pt-1">
+                        <div x-show="open" class="px-3 sm:px-4 pb-3 pt-1">
                             <div class="flex flex-wrap gap-1.5">
-                                <template x-for="(tag, idx) in (showAll ? group : group.slice(0, 30))" :key="tag.name">
+                                <template x-for="tag in (showAll ? group : group.slice(0, 30))" :key="tag.name">
                                     <button
                                         @click="toggleTag(tag)"
                                         :class="tagPillClass(tag)"
@@ -153,7 +177,6 @@
                                     </button>
                                 </template>
                             </div>
-
                             <div x-show="group.length > 30" class="mt-2">
                                 <button
                                     @click="showAll = !showAll"
@@ -163,7 +186,6 @@
                                         : '{{ __('ui.show_more', ['count' => ':count']) }}'.replace(':count', group.length - 30)"
                                 ></button>
                             </div>
-
                             <p x-show="group.length === 0" class="text-xs text-slate-600 py-1">{{ __('ui.no_tags_found') }}</p>
                         </div>
                     </div>
@@ -172,17 +194,18 @@
                 <div x-show="Object.keys(groupedTags).length === 0 && !loading" class="py-16 text-center text-slate-500 text-sm">
                     {{ __('ui.no_tags_found') }}
                 </div>
+
+                {{-- Extra padding on mobile so content isn't hidden behind the bottom bar --}}
+                <div class="lg:hidden h-2"></div>
             </div>
         </div>
 
-        {{-- ── RIGHT: Prompt panel ─────────────────────────────────────── --}}
-        <aside class="shrink-0 w-72 border-l border-slate-800 bg-slate-900/40 flex flex-col">
+        {{-- DESKTOP RIGHT: prompt panel (hidden below lg) --}}
+        <aside class="hidden lg:flex shrink-0 w-72 border-l border-slate-800 bg-slate-900/40 flex-col">
 
-            {{-- Header --}}
             <div class="shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-slate-800">
                 <h2 class="text-xs font-bold text-slate-300 uppercase tracking-wider">{{ __('ui.prompt_label') }}</h2>
                 <div class="flex items-center gap-1.5">
-                    {{-- Copy icon button --}}
                     <button
                         @click="copyPrompt()"
                         :disabled="Object.keys(selected).length === 0"
@@ -190,23 +213,17 @@
                         :title="copied ? '{{ __('ui.copied') }}' : '{{ __('ui.copy_prompt') }}'"
                         class="p-1.5 rounded-md text-slate-400 transition-all"
                     >
-                        {{-- Clipboard icon --}}
                         <svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
                         </svg>
-                        {{-- Check icon --}}
                         <svg x-show="copied" class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
                     </button>
-
-                    {{-- Save button --}}
                     <button
                         @click="openSave()"
                         :disabled="Object.keys(selected).length === 0"
-                        :class="Object.keys(selected).length === 0
-                            ? 'opacity-30 cursor-not-allowed bg-slate-700'
-                            : 'bg-brand-600 hover:bg-brand-700 cursor-pointer'"
+                        :class="Object.keys(selected).length === 0 ? 'opacity-30 cursor-not-allowed bg-slate-700' : 'bg-brand-600 hover:bg-brand-700'"
                         class="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md text-white transition-all"
                     >
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -217,7 +234,6 @@
                 </div>
             </div>
 
-            {{-- Prompt display --}}
             <div class="shrink-0 px-3 py-3 border-b border-slate-800">
                 <div
                     class="min-h-[5rem] max-h-32 overflow-y-auto bg-slate-900/60 border border-slate-700/50 rounded-lg px-3 py-2.5 text-xs leading-relaxed break-all select-all"
@@ -226,27 +242,23 @@
                 ></div>
             </div>
 
-            {{-- Selected tags --}}
             <div class="flex-1 overflow-y-auto px-3 py-3">
                 <div class="flex items-center justify-between mb-2">
                     <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{{ __('ui.selected_tags') }}</p>
                     <span
                         x-show="Object.keys(selected).length > 0"
                         x-text="Object.keys(selected).length"
-                        class="text-[10px] font-bold text-brand-400 bg-brand-600/20 rounded-full px-1.5 py-0.5 leading-none"
+                        class="text-[10px] font-bold text-brand-400 bg-brand-600/20 rounded-full px-1.5 py-0.5"
                     ></span>
                 </div>
-
                 <div class="flex flex-wrap gap-1">
                     <template x-for="(info, tag) in selected" :key="tag">
                         <span
-                            :class="info.is_nsfw
-                                ? 'bg-rose-900/40 text-rose-300 border-rose-800/60'
-                                : 'bg-brand-600/20 text-brand-300 border-brand-700/40'"
+                            :class="info.is_nsfw ? 'bg-rose-900/40 text-rose-300 border-rose-800/60' : 'bg-brand-600/20 text-brand-300 border-brand-700/40'"
                             class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border"
                         >
                             <span x-text="tag"></span>
-                            <button @click="removeTag(tag)" class="text-[9px] opacity-60 hover:opacity-100 hover:text-red-400 transition-all ml-0.5">✕</button>
+                            <button @click="removeTag(tag)" class="text-[9px] opacity-60 hover:opacity-100 hover:text-red-400 ml-0.5">✕</button>
                         </span>
                     </template>
                 </div>
@@ -254,7 +266,122 @@
         </aside>
     </div>
 
-    {{-- ── SAVE MODAL ───────────────────────────────────────────────────── --}}
+    {{-- ─────────────────────────────────────────────────────────────────────
+         MOBILE: bottom prompt bar (hidden on lg+)
+    ─────────────────────────────────────────────────────────────────────── --}}
+    <div class="lg:hidden shrink-0 border-t border-slate-800 bg-slate-900/95 backdrop-blur">
+
+        {{-- Collapsed bar (always visible on mobile) --}}
+        <div
+            x-show="!promptOpen"
+            class="flex items-center gap-2 px-3 py-2.5"
+            @click="if(Object.keys(selected).length > 0) promptOpen = true"
+            :class="Object.keys(selected).length > 0 ? 'cursor-pointer' : ''"
+        >
+            <div class="flex-1 min-w-0">
+                <span x-show="Object.keys(selected).length === 0" class="text-xs text-slate-600">Select tags to build your prompt</span>
+                <div x-show="Object.keys(selected).length > 0" class="flex items-center gap-2">
+                    <span class="text-[11px] font-bold text-brand-400 whitespace-nowrap" x-text="Object.keys(selected).length + ' tag' + (Object.keys(selected).length !== 1 ? 's' : '')"></span>
+                    <span class="text-[11px] text-slate-500 truncate" x-text="promptText"></span>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+                <button
+                    x-show="Object.keys(selected).length > 0"
+                    @click.stop="copyPrompt()"
+                    class="p-2 rounded-lg text-slate-400 hover:text-brand-400 hover:bg-slate-800 transition-all active:scale-95"
+                    title="Copy"
+                >
+                    <svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                    </svg>
+                    <svg x-show="copied" class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </button>
+                <button
+                    x-show="Object.keys(selected).length > 0"
+                    @click.stop="openSave()"
+                    class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 active:scale-95 text-white text-xs font-semibold transition-all"
+                >Save</button>
+                <button
+                    x-show="Object.keys(selected).length > 0"
+                    @click.stop="promptOpen = true"
+                    class="p-2 text-slate-500 hover:text-slate-300"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        {{-- Expanded sheet --}}
+        <div
+            x-show="promptOpen"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 translate-y-3"
+            x-transition:enter-end="opacity-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 translate-y-0"
+            x-transition:leave-end="opacity-0 translate-y-3"
+            style="display:none"
+            class="flex flex-col max-h-[60vh]"
+        >
+            {{-- Sheet header --}}
+            <div class="shrink-0 flex items-center justify-between px-3 py-2.5 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Your Prompt</span>
+                    <span x-text="Object.keys(selected).length" class="text-[10px] font-bold text-brand-400 bg-brand-600/20 rounded-full px-1.5 py-0.5 leading-none"></span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button @click="clearAll()" x-show="Object.keys(selected).length > 0" class="px-2.5 py-1 text-[11px] text-slate-400 hover:text-red-400 border border-slate-700 rounded-md transition-colors">Clear</button>
+                    <button @click="copyPrompt()" x-show="Object.keys(selected).length > 0" class="p-1.5 text-slate-400 hover:text-brand-400 transition-colors">
+                        <svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                        </svg>
+                        <svg x-show="copied" class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </button>
+                    <button @click="openSave()" x-show="Object.keys(selected).length > 0" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg transition-colors">Save</button>
+                    <button @click="promptOpen = false" class="p-1.5 text-slate-500 hover:text-slate-300 ml-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            {{-- Prompt text --}}
+            <div class="shrink-0 px-3 py-3 border-b border-slate-800">
+                <div
+                    class="bg-slate-900/60 border border-slate-700/50 rounded-lg px-3 py-2.5 text-xs leading-relaxed break-all select-all max-h-24 overflow-y-auto"
+                    :class="promptText ? 'text-slate-200' : 'text-slate-600 italic'"
+                    x-text="promptText || '{{ __('ui.prompt_placeholder') }}'"
+                ></div>
+            </div>
+
+            {{-- Selected tags --}}
+            <div class="flex-1 overflow-y-auto px-3 py-3">
+                <div class="flex flex-wrap gap-1.5">
+                    <template x-for="(info, tag) in selected" :key="tag">
+                        <span
+                            :class="info.is_nsfw ? 'bg-rose-900/40 text-rose-300 border-rose-800/60' : 'bg-brand-600/20 text-brand-300 border-brand-700/40'"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border"
+                        >
+                            <span x-text="tag"></span>
+                            <button @click="removeTag(tag)" class="text-[9px] opacity-60 hover:opacity-100 hover:text-red-400 ml-0.5">✕</button>
+                        </span>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ─────────────────────────────────────────────────────────────────────
+         SAVE MODAL (bottom sheet on mobile, centered dialog on desktop)
+    ─────────────────────────────────────────────────────────────────────── --}}
     <div
         x-show="saveOpen"
         x-transition:enter="transition ease-out duration-200"
@@ -264,143 +391,117 @@
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
         @keydown.escape.window="saveOpen = false"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+        class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm"
         style="display:none"
     >
         <div
             @click.stop
             x-transition:enter="transition ease-out duration-200"
-            x-transition:enter-start="opacity-0 scale-95"
-            x-transition:enter-end="opacity-100 scale-100"
-            class="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden"
+            x-transition:enter-start="opacity-0 translate-y-8 sm:translate-y-0 sm:scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+            class="w-full sm:max-w-md bg-slate-900 border-t sm:border border-slate-700 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92dvh]"
         >
             {{-- Modal header --}}
-            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+            <div class="shrink-0 flex items-center justify-between px-5 py-4 border-b border-slate-800">
                 <h3 class="text-base font-bold text-white">Save Prompt</h3>
-                <button @click="saveOpen = false" class="text-slate-500 hover:text-slate-300 transition-colors">
+                <button @click="saveOpen = false" class="text-slate-500 hover:text-slate-300 p-1 transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
             </div>
 
-            {{-- Success state --}}
-            <div x-show="saveSuccess" class="px-5 py-10 text-center">
+            {{-- Success --}}
+            <div x-show="saveSuccess" class="px-5 py-12 text-center">
                 <div class="text-4xl mb-3">✅</div>
                 <p class="text-white font-semibold">Prompt saved!</p>
                 <p class="text-slate-400 text-sm mt-1">Go to <a href="/my-prompts" class="text-brand-400 hover:underline">My Prompts</a> to manage it.</p>
             </div>
 
             {{-- Form --}}
-            <form x-show="!saveSuccess" @submit.prevent="submitSave()" class="px-5 py-5 space-y-4">
+            <form x-show="!saveSuccess" @submit.prevent="submitSave()" class="overflow-y-auto flex-1">
+                <div class="px-5 py-5 space-y-4">
 
-                {{-- Name --}}
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">Prompt name <span class="text-rose-400">*</span></label>
-                    <input
-                        type="text"
-                        x-model="saveName"
-                        placeholder="e.g. Elegant Fantasy Character"
-                        maxlength="120"
-                        class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/50 transition-colors"
-                        required
-                    >
-                </div>
-
-                {{-- Section selector --}}
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">Save which part?</label>
-                    <div class="grid grid-cols-5 gap-1">
-                        <template x-for="sec in ['full','character','pose','outfit','scene']" :key="sec">
-                            <button
-                                type="button"
-                                @click="saveSection = sec"
-                                :class="saveSection === sec
-                                    ? 'bg-brand-600 border-brand-500 text-white'
-                                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'"
-                                class="px-1 py-1.5 rounded-md border text-[10px] font-semibold uppercase tracking-wide transition-all capitalize"
-                                x-text="sec"
-                            ></button>
-                        </template>
-                    </div>
-                    {{-- Preview --}}
-                    <div class="mt-2 bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-[11px] text-slate-400 leading-relaxed break-all max-h-20 overflow-y-auto">
-                        <span x-text="saveSectionPrompt || 'No tags selected for this section.'"></span>
-                    </div>
-                </div>
-
-                {{-- Image upload --}}
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">
-                        Upload result image <span class="text-slate-500 font-normal">(optional, max 1 MB)</span>
-                    </label>
-                    <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-700 rounded-lg cursor-pointer hover:border-brand-500/60 hover:bg-brand-600/5 transition-all">
-                        <template x-if="!saveImageName">
-                            <div class="text-center">
-                                <svg class="w-6 h-6 text-slate-600 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                </svg>
-                                <span class="text-xs text-slate-500">Click to choose image</span>
-                            </div>
-                        </template>
-                        <template x-if="saveImageName">
-                            <div class="text-center">
-                                <span class="text-xs text-brand-400 font-medium" x-text="saveImageName"></span>
-                                <p class="text-[10px] text-slate-500 mt-0.5">Click to change</p>
-                            </div>
-                        </template>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">Prompt name <span class="text-rose-400">*</span></label>
                         <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/gif,image/webp"
-                            class="hidden"
-                            @change="handleImageUpload($event)"
-                            x-ref="imageInput"
+                            type="text"
+                            x-model="saveName"
+                            placeholder="e.g. Elegant Fantasy Character"
+                            maxlength="120"
+                            class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/50 transition-colors"
+                            required
                         >
-                    </label>
-                    <p x-show="saveImageError" x-text="saveImageError" class="mt-1 text-xs text-rose-400"></p>
-                </div>
+                    </div>
 
-                {{-- Disclaimer (shown when image selected) --}}
-                <div x-show="saveImageName" class="bg-slate-800/60 border border-slate-700/50 rounded-lg p-3">
-                    <label class="flex gap-2.5 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            x-model="saveDisclaimer"
-                            class="mt-0.5 shrink-0 accent-brand-500"
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">Save which part?</label>
+                        <div class="grid grid-cols-5 gap-1">
+                            <template x-for="sec in ['full','character','pose','outfit','scene']" :key="sec">
+                                <button
+                                    type="button"
+                                    @click="saveSection = sec"
+                                    :class="saveSection === sec ? 'bg-brand-600 border-brand-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'"
+                                    class="py-2 rounded-md border text-[10px] font-semibold uppercase tracking-wide transition-all capitalize"
+                                    x-text="sec"
+                                ></button>
+                            </template>
+                        </div>
+                        <div class="mt-2 bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-[11px] text-slate-400 leading-relaxed break-all max-h-16 overflow-y-auto">
+                            <span x-text="saveSectionPrompt || 'No tags selected for this section.'"></span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">
+                            Upload result image <span class="text-slate-500 font-normal">(optional, max 1 MB)</span>
+                        </label>
+                        <label class="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-slate-700 rounded-lg cursor-pointer hover:border-brand-500/60 hover:bg-brand-600/5 transition-all active:scale-[.98]">
+                            <template x-if="!saveImageName">
+                                <div class="text-center">
+                                    <svg class="w-5 h-5 text-slate-600 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <span class="text-xs text-slate-500">Tap to choose image</span>
+                                </div>
+                            </template>
+                            <template x-if="saveImageName">
+                                <div class="text-center px-4">
+                                    <span class="text-xs text-brand-400 font-medium block truncate" x-text="saveImageName"></span>
+                                    <p class="text-[10px] text-slate-500 mt-0.5">Tap to change</p>
+                                </div>
+                            </template>
+                            <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" @change="handleImageUpload($event)" x-ref="imageInput">
+                        </label>
+                        <p x-show="saveImageError" x-text="saveImageError" class="mt-1 text-xs text-rose-400"></p>
+                    </div>
+
+                    <div x-show="saveImageName" class="bg-slate-800/60 border border-slate-700/50 rounded-lg p-3">
+                        <label class="flex gap-2.5 cursor-pointer">
+                            <input type="checkbox" x-model="saveDisclaimer" class="mt-0.5 shrink-0 accent-brand-500">
+                            <span class="text-[11px] text-slate-400 leading-relaxed">
+                                I certify that I have the rights to upload this image. Geekguayaco is not responsible for the intellectual property of uploaded images and may remove any image without notice if it violates copyright or usage policies.
+                            </span>
+                        </label>
+                    </div>
+
+                    <p x-show="saveError" x-text="saveError" class="text-xs text-rose-400"></p>
+
+                    <div class="flex gap-2 pb-1">
+                        <button type="button" @click="saveOpen = false" class="flex-1 py-3 sm:py-2 rounded-lg border border-slate-700 text-slate-400 text-sm font-medium hover:border-slate-500 hover:text-slate-200 transition-all">Cancel</button>
+                        <button
+                            type="submit"
+                            :disabled="savePending || !saveName.trim() || (saveImageName && !saveDisclaimer)"
+                            :class="(savePending || !saveName.trim() || (saveImageName && !saveDisclaimer)) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-brand-700'"
+                            class="flex-1 py-3 sm:py-2 rounded-lg bg-brand-600 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 active:scale-[.98]"
                         >
-                        <span class="text-[11px] text-slate-400 leading-relaxed">
-                            I certify that I have the rights to upload this image. I understand that
-                            Geekguayaco is not responsible for the intellectual property of uploaded images.
-                            Images may be removed from the site without prior notice if they are found to
-                            violate copyright or usage policies.
-                        </span>
-                    </label>
-                </div>
-
-                {{-- Error --}}
-                <p x-show="saveError" x-text="saveError" class="text-xs text-rose-400"></p>
-
-                {{-- Actions --}}
-                <div class="flex gap-2 pt-1">
-                    <button
-                        type="button"
-                        @click="saveOpen = false"
-                        class="flex-1 py-2 rounded-lg border border-slate-700 text-slate-400 text-sm font-medium hover:border-slate-500 hover:text-slate-200 transition-all"
-                    >Cancel</button>
-                    <button
-                        type="submit"
-                        :disabled="savePending || !saveName.trim() || (saveImageName && !saveDisclaimer)"
-                        :class="(savePending || !saveName.trim() || (saveImageName && !saveDisclaimer))
-                            ? 'opacity-40 cursor-not-allowed bg-brand-600'
-                            : 'bg-brand-600 hover:bg-brand-700'"
-                        class="flex-1 py-2 rounded-lg text-white text-sm font-semibold transition-all flex items-center justify-center gap-2"
-                    >
-                        <svg x-show="savePending" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                        </svg>
-                        <span x-text="savePending ? 'Saving…' : 'Save Prompt'"></span>
-                    </button>
+                            <svg x-show="savePending" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                            </svg>
+                            <span x-text="savePending ? 'Saving…' : 'Save Prompt'"></span>
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -420,10 +521,10 @@ function promptBuilder() {
         groupedTags:       {},
         selected:          {},
         copied:            false,
+        promptOpen:        false,
         countBySection:    { character: 0, pose: 0, outfit: 0, scene: 0 },
         countBySubsection: {},
 
-        // Save modal state
         saveOpen:        false,
         saveName:        '',
         saveSection:     'full',
@@ -448,13 +549,11 @@ function promptBuilder() {
         },
 
         init() {
-            // Restore pending save from sessionStorage (after login redirect)
             const pending = sessionStorage.getItem('pendingSave');
             if (pending) {
                 try {
                     const data = JSON.parse(pending);
                     this.selected = data.selected || {};
-                    // Recalculate counts
                     Object.entries(this.selected).forEach(([, info]) => {
                         if (info.section)    this.countBySection[info.section]    = (this.countBySection[info.section] || 0) + 1;
                         if (info.subsection) this.countBySubsection[info.subsection] = (this.countBySubsection[info.subsection] || 0) + 1;
@@ -470,22 +569,21 @@ function promptBuilder() {
             this.loading     = true;
             this.groupedTags = {};
             this.searchQuery = '';
-
             try {
                 const params = new URLSearchParams({ section, nsfw: this.nsfwEnabled ? '1' : '0' });
                 const res    = await fetch('/api/tags?' + params);
                 this.allTags = await res.json();
                 this.applyFilter();
             } catch (e) {
-                console.error('Failed to load tags:', e);
+                console.error(e);
             } finally {
                 this.loading = false;
             }
         },
 
         applyFilter() {
-            const q    = this.searchQuery.toLowerCase().trim();
-            const tags = q ? this.allTags.filter(t => t.name.includes(q)) : this.allTags;
+            const q      = this.searchQuery.toLowerCase().trim();
+            const tags   = q ? this.allTags.filter(t => t.name.includes(q)) : this.allTags;
             const groups = {};
             tags.forEach(tag => {
                 if (!groups[tag.subsection]) groups[tag.subsection] = [];
@@ -498,6 +596,7 @@ function promptBuilder() {
 
         switchSection(section) {
             this.activeSection = section;
+            this.promptOpen    = false;
             this.loadSection(section);
         },
 
@@ -520,7 +619,7 @@ function promptBuilder() {
             const copy = { ...this.selected };
             delete copy[name];
             this.selected = copy;
-            if (this.countBySection[info.section] > 0)       this.countBySection[info.section]--;
+            if (this.countBySection[info.section] > 0)              this.countBySection[info.section]--;
             if ((this.countBySubsection[info.subsection] || 0) > 0) this.countBySubsection[info.subsection]--;
         },
 
@@ -528,6 +627,7 @@ function promptBuilder() {
             this.selected          = {};
             this.countBySection    = { character: 0, pose: 0, outfit: 0, scene: 0 };
             this.countBySubsection = {};
+            this.promptOpen        = false;
         },
 
         async copyPrompt() {
@@ -536,8 +636,6 @@ function promptBuilder() {
             this.copied = true;
             setTimeout(() => this.copied = false, 2000);
         },
-
-        // ── Save modal ───────────────────────────────────────────────────
 
         openSave() {
             if (Object.keys(this.selected).length === 0) return;
@@ -566,9 +664,9 @@ function promptBuilder() {
                 this.saveImage = null; this.saveImageName = '';
                 return;
             }
-            const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            const allowed = ['image/jpeg','image/png','image/gif','image/webp'];
             if (!allowed.includes(file.type)) {
-                this.saveImageError = 'Only JPEG, PNG, GIF or WebP images are allowed.';
+                this.saveImageError = 'Only JPEG, PNG, GIF or WebP are allowed.';
                 e.target.value = '';
                 this.saveImage = null; this.saveImageName = '';
                 return;
@@ -581,10 +679,7 @@ function promptBuilder() {
         async submitSave() {
             if (!this.saveName.trim()) return;
             if (this.saveImageName && !this.saveDisclaimer) return;
-            if (!this.saveSectionPrompt.trim()) {
-                this.saveError = 'No tags selected for the chosen section.';
-                return;
-            }
+            if (!this.saveSectionPrompt.trim()) { this.saveError = 'No tags for the chosen section.'; return; }
 
             this.savePending = true;
             this.saveError   = '';
@@ -594,7 +689,7 @@ function promptBuilder() {
             fd.append('name',        this.saveName.trim());
             fd.append('section',     this.saveSection);
             fd.append('prompt_text', this.saveSectionPrompt);
-            if (this.saveImage) fd.append('image', this.saveImage);
+            if (this.saveImage)     fd.append('image',      this.saveImage);
             if (this.saveImageName) fd.append('disclaimer', '1');
 
             try {

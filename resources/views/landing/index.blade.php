@@ -1,251 +1,266 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Geekguayaco — Danbooru Prompt Builder</title>
-  <meta name="description" content="The most intuitive visual prompt builder for AI image generation. Browse 2,700+ Danbooru tags organized by character, pose, outfit and scene. Free tool.">
+  <meta name="description" content="Visual prompt builder for AI image generation. Browse 2,700+ Danbooru tags by character, pose, outfit and scene. Free tool, no sign-up required.">
   @vite(['resources/css/app.css', 'resources/js/app.js'])
   <style>
     @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50%       { transform: translateY(20px); }
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(18px); }
     }
-    @keyframes pulse-slow {
-      0%, 100% { opacity: 0.3; }
-      50%       { opacity: 0.5; }
-    }
-    .nav-link { transition: color .2s; }
-    .nav-link:hover { color: #e0e7ff; }
+    .blob { animation: float 8s ease-in-out infinite; }
+    .blob-2 { animation: float 10s ease-in-out infinite 2s; }
     .feature-card { transition: transform .2s, border-color .2s; }
     .feature-card:hover { transform: translateY(-4px); border-color: rgba(99,102,241,.5); }
     .gallery-card { transition: transform .2s, box-shadow .2s; }
     .gallery-card:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(99,102,241,.25); }
-    .btn-primary { transition: opacity .2s, transform .2s; }
-    .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
-    .btn-outline { transition: background .2s, color .2s; }
-    .btn-outline:hover { background: rgba(99,102,241,.15); }
-    .like-btn { transition: color .2s; }
-    .like-btn:hover { color: #f472b6; }
   </style>
 </head>
-<body style="margin:0;padding:0;background:#0a0e27;color:#e0e7ff;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.6;">
+<body class="bg-[#0a0e27] text-slate-200 antialiased" style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 
-<!-- ── NAVIGATION ──────────────────────────────────────────────────────── -->
-<nav style="display:flex;justify-content:space-between;align-items:center;padding:1.25rem 3rem;border-bottom:1px solid rgba(99,102,241,.12);background:rgba(10,14,39,.95);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100;">
-  <a href="/" style="display:flex;align-items:center;gap:.4rem;font-size:1.4rem;font-weight:700;letter-spacing:-.5px;text-decoration:none;color:inherit;">
-    <span style="background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">⚡</span>
-    <span>Geekguayaco</span>
-  </a>
+{{-- ── NAVIGATION ──────────────────────────────────────────────────────── --}}
+<nav
+  x-data="{ open: false }"
+  class="sticky top-0 z-50 border-b border-indigo-900/30 bg-[#0a0e27]/95 backdrop-blur-md"
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12">
+    <div class="flex items-center justify-between h-14 sm:h-16">
 
-  <div style="display:flex;gap:2rem;align-items:center;">
-    <a href="#features" class="nav-link" style="font-size:.9rem;color:#a5b4fc;text-decoration:none;">Features</a>
-    <a href="#gallery"  class="nav-link" style="font-size:.9rem;color:#a5b4fc;text-decoration:none;">Gallery</a>
-    <a href="#community" class="nav-link" style="font-size:.9rem;color:#a5b4fc;text-decoration:none;">Community</a>
-    @auth
-      <span style="font-size:.9rem;color:#a5b4fc;">Hi, {{ auth()->user()->name }}</span>
-      <a href="/builder" style="padding:.55rem 1.3rem;border:none;border-radius:6px;background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;font-weight:600;font-size:.9rem;text-decoration:none;" class="btn-primary">Open Builder</a>
-      <form method="POST" action="/logout" style="margin:0;">@csrf<button type="submit" style="padding:.55rem 1.3rem;border:1px solid rgba(99,102,241,.4);border-radius:6px;background:transparent;color:#a5b4fc;font-weight:500;cursor:pointer;font-size:.9rem;">Log Out</button></form>
-    @else
-      <a href="/login"    style="padding:.55rem 1.3rem;border:1px solid #6366f1;border-radius:6px;background:transparent;color:#6366f1;font-weight:500;font-size:.9rem;text-decoration:none;" class="btn-outline">Log In</a>
-      <a href="/register" style="padding:.55rem 1.3rem;border:none;border-radius:6px;background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;font-weight:600;font-size:.9rem;text-decoration:none;" class="btn-primary">Sign Up</a>
-    @endauth
+      {{-- Logo --}}
+      <a href="/" class="flex items-center gap-1.5 text-lg sm:text-xl font-bold tracking-tight text-white hover:opacity-90 transition-opacity">
+        <span class="bg-gradient-to-br from-indigo-400 to-purple-500 bg-clip-text text-transparent">⚡</span>
+        Geekguayaco
+      </a>
+
+      {{-- Desktop nav --}}
+      <div class="hidden md:flex items-center gap-6 lg:gap-8">
+        <a href="#features" class="text-sm text-indigo-300 hover:text-white transition-colors">Features</a>
+        <a href="#gallery"  class="text-sm text-indigo-300 hover:text-white transition-colors">Gallery</a>
+        <a href="#community" class="text-sm text-indigo-300 hover:text-white transition-colors">Community</a>
+      </div>
+
+      <div class="hidden md:flex items-center gap-3">
+        @auth
+          <span class="text-sm text-indigo-300">Hi, {{ auth()->user()->name }}</span>
+          <a href="/builder" class="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity">Open Builder</a>
+          <form method="POST" action="/logout">@csrf
+            <button type="submit" class="px-4 py-2 rounded-lg border border-indigo-500/40 text-indigo-300 text-sm font-medium hover:bg-indigo-500/10 transition-colors">Log Out</button>
+          </form>
+        @else
+          <a href="/login"    class="px-4 py-2 rounded-lg border border-indigo-500 text-indigo-400 text-sm font-medium hover:bg-indigo-500/10 transition-colors">Log In</a>
+          <a href="/register" class="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity">Sign Up</a>
+        @endauth
+      </div>
+
+      {{-- Mobile: auth CTA + hamburger --}}
+      <div class="flex md:hidden items-center gap-2">
+        @auth
+          <a href="/builder" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-semibold">Builder</a>
+        @else
+          <a href="/register" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-semibold">Sign Up</a>
+        @endauth
+
+        <button @click="open = !open" class="p-2 rounded-lg text-indigo-300 hover:text-white hover:bg-white/5 transition-colors" aria-label="Menu">
+          <svg x-show="!open" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+          <svg x-show="open" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {{-- Mobile menu --}}
+  <div x-show="open" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="md:hidden border-t border-indigo-900/30 bg-[#0a0e27]/98 px-4 py-4 space-y-1">
+    <a href="#features"  @click="open=false" class="block px-3 py-2.5 rounded-lg text-sm text-indigo-300 hover:text-white hover:bg-white/5 transition-colors">Features</a>
+    <a href="#gallery"   @click="open=false" class="block px-3 py-2.5 rounded-lg text-sm text-indigo-300 hover:text-white hover:bg-white/5 transition-colors">Gallery</a>
+    <a href="#community" @click="open=false" class="block px-3 py-2.5 rounded-lg text-sm text-indigo-300 hover:text-white hover:bg-white/5 transition-colors">Community</a>
+    <div class="pt-2 border-t border-indigo-900/30 flex flex-col gap-2">
+      @auth
+        <a href="/builder" class="block px-3 py-2.5 rounded-lg text-sm font-medium text-center bg-gradient-to-r from-indigo-500 to-purple-600 text-white">Open Builder</a>
+        <form method="POST" action="/logout">@csrf
+          <button type="submit" class="w-full px-3 py-2.5 rounded-lg text-sm text-indigo-300 border border-indigo-500/30 hover:bg-white/5 transition-colors">Log Out</button>
+        </form>
+      @else
+        <a href="/login"    class="block px-3 py-2.5 rounded-lg text-sm text-center border border-indigo-500 text-indigo-400 hover:bg-indigo-500/10 transition-colors">Log In</a>
+        <a href="/register" class="block px-3 py-2.5 rounded-lg text-sm text-center font-medium bg-gradient-to-r from-indigo-500 to-purple-600 text-white">Sign Up Free</a>
+      @endauth
+    </div>
   </div>
 </nav>
 
-<!-- ── HERO ────────────────────────────────────────────────────────────── -->
-<section style="padding:6rem 3rem;text-align:center;background:linear-gradient(135deg,rgba(99,102,241,.07),rgba(168,85,247,.07));position:relative;overflow:hidden;">
+{{-- ── HERO ──────────────────────────────────────────────────────────────── --}}
+<section class="relative overflow-hidden px-4 py-16 sm:py-24 lg:py-32 text-center bg-gradient-to-br from-indigo-950/40 to-purple-950/30">
 
   {{-- decorative blobs --}}
-  <div style="position:absolute;width:420px;height:420px;background:radial-gradient(circle,rgba(99,102,241,.18) 0%,transparent 70%);border-radius:50%;top:-120px;right:-80px;animation:float 7s ease-in-out infinite;pointer-events:none;"></div>
-  <div style="position:absolute;width:320px;height:320px;background:radial-gradient(circle,rgba(168,85,247,.12) 0%,transparent 70%);border-radius:50%;bottom:-60px;left:-60px;animation:float 9s ease-in-out infinite 1.5s;pointer-events:none;"></div>
+  <div class="blob pointer-events-none absolute -top-24 -right-16 w-64 h-64 sm:w-96 sm:h-96 rounded-full bg-gradient-radial from-indigo-600/20 to-transparent opacity-60"></div>
+  <div class="blob-2 pointer-events-none absolute -bottom-16 -left-12 w-52 h-52 sm:w-80 sm:h-80 rounded-full bg-gradient-radial from-purple-600/15 to-transparent opacity-60"></div>
 
-  <div style="position:relative;z-index:2;max-width:860px;margin:0 auto;">
-
-    <div style="display:inline-block;padding:.35rem 1rem;border:1px solid rgba(99,102,241,.35);border-radius:999px;font-size:.8rem;color:#a5b4fc;margin-bottom:1.5rem;background:rgba(99,102,241,.08);">
+  <div class="relative z-10 max-w-3xl mx-auto">
+    <div class="inline-block px-3 py-1 mb-5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs sm:text-sm font-medium">
       🎨 Free tool
     </div>
 
-    <h1 style="font-size:3.4rem;font-weight:700;line-height:1.2;margin-bottom:1.25rem;background:linear-gradient(135deg,#e0e7ff 0%,#a5b4fc 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+    <h1 class="text-3xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-4 sm:mb-6 bg-gradient-to-br from-slate-100 to-indigo-300 bg-clip-text text-transparent">
       Build Epic Prompts<br>for AI Image Generation
     </h1>
 
-    <p style="font-size:1.2rem;color:#cbd5e1;max-width:680px;margin:0 auto 2.5rem;">
-      Browse <strong style="color:#a5b4fc;">{{ number_format($totalTags) }}+ Danbooru tags</strong> organized by character, pose, outfit and scene. Click to build — copy and generate.
+    <p class="text-base sm:text-lg lg:text-xl text-slate-400 max-w-2xl mx-auto mb-8 sm:mb-10">
+      Browse <strong class="text-indigo-300">{{ number_format($totalTags) }}+ Danbooru tags</strong> organized by character, pose, outfit and scene. Click to build — copy and generate.
     </p>
 
-    <div style="display:flex;gap:1rem;justify-content:center;margin-bottom:3.5rem;">
-      <a href="/builder" style="padding:1rem 2.2rem;border:none;border-radius:8px;background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;font-weight:600;font-size:1rem;cursor:pointer;text-decoration:none;display:inline-block;" class="btn-primary">
+    <div class="flex flex-col sm:flex-row gap-3 justify-center mb-10 sm:mb-14">
+      <a href="/builder" class="px-7 py-3 sm:py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold text-base hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-indigo-900/40">
         Start Building Now →
       </a>
+      @guest
+      <a href="/register" class="px-7 py-3 sm:py-3.5 rounded-xl border border-indigo-500/40 text-indigo-300 font-medium text-base hover:bg-indigo-500/10 transition-colors">
+        Create Free Account
+      </a>
+      @endguest
     </div>
 
     {{-- Stats --}}
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;max-width:680px;margin:0 auto;">
-      <div style="padding:1.25rem;background:rgba(99,102,241,.1);border-radius:12px;border:1px solid rgba(99,102,241,.2);">
-        <div style="font-size:2rem;font-weight:700;color:#6366f1;">{{ number_format($totalTags) }}+</div>
-        <div style="font-size:.85rem;color:#a5b4fc;margin-top:.2rem;">Tags in database</div>
+    <div class="grid grid-cols-3 gap-2 sm:gap-4 max-w-lg mx-auto">
+      <div class="p-3 sm:p-5 bg-indigo-600/10 border border-indigo-600/20 rounded-xl">
+        <div class="text-xl sm:text-3xl font-bold text-indigo-400">{{ number_format($totalTags) }}+</div>
+        <div class="text-[11px] sm:text-sm text-indigo-300 mt-0.5 sm:mt-1">Tags</div>
       </div>
-      <div style="padding:1.25rem;background:rgba(168,85,247,.1);border-radius:12px;border:1px solid rgba(168,85,247,.2);">
-        <div style="font-size:2rem;font-weight:700;color:#a855f7;">∞</div>
-        <div style="font-size:.85rem;color:#e9d5ff;margin-top:.2rem;">Possible combinations</div>
+      <div class="p-3 sm:p-5 bg-purple-600/10 border border-purple-600/20 rounded-xl">
+        <div class="text-xl sm:text-3xl font-bold text-purple-400">∞</div>
+        <div class="text-[11px] sm:text-sm text-purple-300 mt-0.5 sm:mt-1">Combinations</div>
       </div>
-      <div style="padding:1.25rem;background:rgba(99,102,241,.1);border-radius:12px;border:1px solid rgba(99,102,241,.2);">
-        <div style="font-size:2rem;font-weight:700;color:#6366f1;">100%</div>
-        <div style="font-size:.85rem;color:#a5b4fc;margin-top:.2rem;">Free to use</div>
+      <div class="p-3 sm:p-5 bg-indigo-600/10 border border-indigo-600/20 rounded-xl">
+        <div class="text-xl sm:text-3xl font-bold text-indigo-400">100%</div>
+        <div class="text-[11px] sm:text-sm text-indigo-300 mt-0.5 sm:mt-1">Free</div>
       </div>
-    </div>
-
-  </div>
-</section>
-
-<!-- ── FEATURES ────────────────────────────────────────────────────────── -->
-<section id="features" style="padding:5rem 3rem;background:#0f1535;">
-  <div style="max-width:1200px;margin:0 auto;">
-    <h2 style="font-size:2.2rem;font-weight:700;text-align:center;margin-bottom:.75rem;color:#e0e7ff;">Why Geekguayaco?</h2>
-    <p style="text-align:center;color:#a5b4fc;margin-bottom:3rem;font-size:1rem;">Everything you need to craft the perfect prompt, in one place.</p>
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.75rem;">
-
-      <div class="feature-card" style="padding:2rem;background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(99,102,241,.04));border:1px solid rgba(99,102,241,.2);border-radius:14px;">
-        <div style="font-size:2.2rem;margin-bottom:1rem;">🎨</div>
-        <h3 style="font-size:1.15rem;font-weight:600;margin-bottom:.5rem;">Visual Tag Browser</h3>
-        <p style="color:#a5b4fc;font-size:.9rem;">Click tags to add them. See post counts so you know how popular each one is. No memorizing syntax.</p>
-      </div>
-
-      <div class="feature-card" style="padding:2rem;background:linear-gradient(135deg,rgba(168,85,247,.1),rgba(168,85,247,.04));border:1px solid rgba(168,85,247,.2);border-radius:14px;">
-        <div style="font-size:2.2rem;margin-bottom:1rem;">💾</div>
-        <h3 style="font-size:1.15rem;font-weight:600;margin-bottom:.5rem;">Save Your Prompts</h3>
-        <p style="color:#e9d5ff;font-size:.9rem;">Create a free account and save prompts — the full build or individual sections like character, outfit, pose or scene.</p>
-      </div>
-
-      <div class="feature-card" style="padding:2rem;background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(99,102,241,.04));border:1px solid rgba(99,102,241,.2);border-radius:14px;">
-        <div style="font-size:2.2rem;margin-bottom:1rem;">⚡</div>
-        <h3 style="font-size:1.15rem;font-weight:600;margin-bottom:.5rem;">Instant Search</h3>
-        <p style="color:#a5b4fc;font-size:.9rem;">Find any tag in milliseconds with live filtering across all 52 subsections.</p>
-      </div>
-
-      <div class="feature-card" style="padding:2rem;background:linear-gradient(135deg,rgba(168,85,247,.1),rgba(168,85,247,.04));border:1px solid rgba(168,85,247,.2);border-radius:14px;">
-        <div style="font-size:2.2rem;margin-bottom:1rem;">🖼️</div>
-        <h3 style="font-size:1.15rem;font-weight:600;margin-bottom:.5rem;">Share with Image</h3>
-        <p style="color:#e9d5ff;font-size:.9rem;">Upload the image your prompt generated and share it publicly so the community can like and copy it.</p>
-      </div>
-
-      <div class="feature-card" style="padding:2rem;background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(99,102,241,.04));border:1px solid rgba(99,102,241,.2);border-radius:14px;">
-        <div style="font-size:2.2rem;margin-bottom:1rem;">🔞</div>
-        <h3 style="font-size:1.15rem;font-weight:600;margin-bottom:.5rem;">Full NSFW Support</h3>
-        <p style="color:#a5b4fc;font-size:.9rem;">Toggle adult content on or off with one click. All Danbooru tag categories are available.</p>
-      </div>
-
-      <div class="feature-card" style="padding:2rem;background:linear-gradient(135deg,rgba(168,85,247,.1),rgba(168,85,247,.04));border:1px solid rgba(168,85,247,.2);border-radius:14px;">
-        <div style="font-size:2.2rem;margin-bottom:1rem;">🤝</div>
-        <h3 style="font-size:1.15rem;font-weight:600;margin-bottom:.5rem;">Community Gallery</h3>
-        <p style="color:#e9d5ff;font-size:.9rem;">Discover prompts from other users, like your favorites and copy them to the builder in one click.</p>
-      </div>
-
     </div>
   </div>
 </section>
 
-<!-- ── SITE GALLERY ────────────────────────────────────────────────────── -->
-<section id="gallery" style="padding:5rem 3rem;background:linear-gradient(135deg,rgba(99,102,241,.07),rgba(168,85,247,.07));">
-  <div style="max-width:1200px;margin:0 auto;">
-    <h2 style="font-size:2.2rem;font-weight:700;text-align:center;margin-bottom:.75rem;color:#e0e7ff;">Featured Gallery</h2>
-    <p style="text-align:center;color:#a5b4fc;margin-bottom:3rem;font-size:1rem;">Hand-picked prompts from our team</p>
+{{-- ── FEATURES ──────────────────────────────────────────────────────────── --}}
+<section id="features" class="bg-[#0f1535] px-4 py-14 sm:py-20 lg:py-24">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-center text-slate-100 mb-2 sm:mb-3">Why Geekguayaco?</h2>
+    <p class="text-center text-indigo-300 text-sm sm:text-base mb-10 sm:mb-14">Everything you need to craft the perfect prompt, in one place.</p>
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;" id="galleryContainer"></div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      @foreach([
+        ['🎨', 'Visual Tag Browser', 'Click tags to add them. See post counts so you know how popular each one is. No memorizing syntax.', 'indigo'],
+        ['💾', 'Save Your Prompts', 'Create a free account and save prompts — the full build or by section: character, outfit, pose or scene.', 'purple'],
+        ['⚡', 'Instant Search', 'Find any tag in milliseconds with live filtering across all 52 subsections.', 'indigo'],
+        ['🖼️', 'Share with Image', 'Upload the image your prompt generated and share it publicly so the community can like and copy it.', 'purple'],
+        ['🔞', 'Full NSFW Support', 'Toggle adult content on or off with one click. All Danbooru tag categories are available.', 'indigo'],
+        ['🤝', 'Community Gallery', 'Discover prompts from other users, like your favorites and copy them to the builder in one click.', 'purple'],
+      ] as [$icon, $title, $body, $color])
+      <div class="feature-card p-5 sm:p-7 rounded-2xl border
+        {{ $color === 'purple'
+            ? 'bg-gradient-to-br from-purple-900/20 to-purple-900/5 border-purple-800/25'
+            : 'bg-gradient-to-br from-indigo-900/20 to-indigo-900/5 border-indigo-800/25' }}">
+        <div class="text-3xl mb-3">{{ $icon }}</div>
+        <h3 class="text-base sm:text-lg font-semibold text-slate-100 mb-2">{{ $title }}</h3>
+        <p class="text-sm text-slate-400 leading-relaxed">{{ $body }}</p>
+      </div>
+      @endforeach
+    </div>
+  </div>
+</section>
 
-    <div style="text-align:center;margin-top:2.5rem;">
-      <a href="/builder" style="padding:.75rem 2rem;border:2px solid #6366f1;border-radius:8px;background:transparent;color:#6366f1;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block;" class="btn-outline">
+{{-- ── SITE GALLERY ──────────────────────────────────────────────────────── --}}
+<section id="gallery" class="px-4 py-14 sm:py-20 lg:py-24 bg-gradient-to-br from-indigo-950/40 to-purple-950/30">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-center text-slate-100 mb-2 sm:mb-3">Featured Gallery</h2>
+    <p class="text-center text-indigo-300 text-sm sm:text-base mb-10 sm:mb-14">Hand-picked prompts from our team</p>
+
+    <div id="galleryContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5"></div>
+
+    <div class="text-center mt-8 sm:mt-10">
+      <a href="/builder" class="inline-block px-7 py-3 rounded-xl border-2 border-indigo-500 text-indigo-400 font-semibold text-sm hover:bg-indigo-500/10 transition-colors">
         Open Builder →
       </a>
     </div>
   </div>
 </section>
 
-<!-- ── COMMUNITY GALLERY ───────────────────────────────────────────────── -->
-<section id="community" style="padding:5rem 3rem;background:#0f1535;">
-  <div style="max-width:1200px;margin:0 auto;">
-    <h2 style="font-size:2.2rem;font-weight:700;text-align:center;margin-bottom:.75rem;color:#e0e7ff;">Community Prompts</h2>
-    <p style="text-align:center;color:#a5b4fc;margin-bottom:3rem;font-size:1rem;">Top-liked prompts shared by our users</p>
+{{-- ── COMMUNITY GALLERY ─────────────────────────────────────────────────── --}}
+<section id="community" class="bg-[#0f1535] px-4 py-14 sm:py-20 lg:py-24">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-center text-slate-100 mb-2 sm:mb-3">Community Prompts</h2>
+    <p class="text-center text-indigo-300 text-sm sm:text-base mb-10 sm:mb-14">Top-liked prompts shared by our users</p>
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;" id="communityContainer"></div>
+    <div id="communityContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5"></div>
 
-    <div style="text-align:center;margin-top:2.5rem;">
-      <button style="padding:.75rem 2rem;border:2px solid #a855f7;border-radius:8px;background:transparent;color:#a855f7;font-weight:600;cursor:pointer;" class="btn-outline">
+    <div class="text-center mt-8 sm:mt-10">
+      <button class="px-7 py-3 rounded-xl border-2 border-purple-500 text-purple-400 font-semibold text-sm hover:bg-purple-500/10 transition-colors">
         Explore Community
       </button>
     </div>
   </div>
 </section>
 
-<!-- ── CTA ─────────────────────────────────────────────────────────────── -->
-<section style="padding:5rem 3rem;background:linear-gradient(135deg,#6366f1,#a855f7);text-align:center;">
-  <div style="max-width:680px;margin:0 auto;">
-    <h2 style="font-size:2.4rem;font-weight:700;margin-bottom:1rem;color:#fff;">Ready to Create?</h2>
-    <p style="font-size:1.1rem;color:rgba(255,255,255,.88);margin-bottom:2rem;">Jump into the builder — it's free, no sign-up required to start.</p>
-    <a href="/builder" style="padding:1rem 2.5rem;border:none;border-radius:8px;background:#fff;color:#6366f1;font-weight:700;font-size:1rem;cursor:pointer;text-decoration:none;display:inline-block;" class="btn-primary">
+{{-- ── CTA ───────────────────────────────────────────────────────────────── --}}
+<section class="px-4 py-14 sm:py-20 lg:py-24 bg-gradient-to-br from-indigo-600 to-purple-700 text-center">
+  <div class="max-w-2xl mx-auto">
+    <h2 class="text-2xl sm:text-4xl font-bold text-white mb-3 sm:mb-4">Ready to Create?</h2>
+    <p class="text-sm sm:text-lg text-white/85 mb-7 sm:mb-8">Jump into the builder — it's free, no sign-up required to start.</p>
+    <a href="/builder" class="inline-block px-8 py-3 sm:py-3.5 rounded-xl bg-white text-indigo-600 font-bold text-sm sm:text-base hover:opacity-90 active:scale-95 transition-all shadow-lg">
       Start Building Free →
     </a>
   </div>
 </section>
 
-<!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
-<footer style="padding:2.5rem 3rem;background:#050812;border-top:1px solid rgba(99,102,241,.1);text-align:center;color:#64748b;">
-  <p style="margin-bottom:1rem;">© {{ date('Y') }} Geekguayaco. Made with ❤️ for the AI art community.</p>
-  <div style="display:flex;gap:2rem;justify-content:center;font-size:.9rem;">
-    <a href="#" style="color:#a5b4fc;text-decoration:none;" class="nav-link">Privacy</a>
-    <a href="#" style="color:#a5b4fc;text-decoration:none;" class="nav-link">Terms</a>
-    <a href="#" style="color:#a5b4fc;text-decoration:none;" class="nav-link">Contact</a>
+{{-- ── FOOTER ────────────────────────────────────────────────────────────── --}}
+<footer class="bg-[#050812] border-t border-indigo-900/20 px-4 py-8 sm:py-10 text-center text-slate-600">
+  <p class="text-sm mb-4">© {{ date('Y') }} Geekguayaco. Made with ❤️ for the AI art community.</p>
+  <div class="flex flex-wrap gap-4 sm:gap-6 justify-center text-sm">
+    <a href="#" class="text-indigo-400/70 hover:text-indigo-300 transition-colors">Privacy</a>
+    <a href="#" class="text-indigo-400/70 hover:text-indigo-300 transition-colors">Terms</a>
+    <a href="#" class="text-indigo-400/70 hover:text-indigo-300 transition-colors">Contact</a>
   </div>
 </footer>
 
 <script>
-// ── Sample gallery data (will be replaced by real DB data) ────────────────
 const galleryItems = [
-  { title: 'Elegant Mystery',    tags: '1girl, long_hair, purple_eyes, evening_gown, moonlight',  likes: 234 },
-  { title: 'Epic Action',        tags: '1girl, katana, dynamic_pose, battle, dark_fantasy',        likes: 189 },
-  { title: 'Cozy School Day',    tags: '1girl, school_uniform, sitting, smile, classroom',         likes: 156 },
-  { title: 'Fantasy Sorceress',  tags: '1girl, magic_circle, glowing, wizard_hat, forest',        likes: 312 },
+  { title: 'Elegant Mystery',   tags: '1girl, long_hair, purple_eyes, evening_gown, moonlight',  likes: 234 },
+  { title: 'Epic Action',       tags: '1girl, katana, dynamic_pose, battle, dark_fantasy',        likes: 189 },
+  { title: 'Cozy School Day',   tags: '1girl, school_uniform, sitting, smile, classroom',         likes: 156 },
+  { title: 'Fantasy Sorceress', tags: '1girl, magic_circle, glowing, wizard_hat, forest',        likes: 312 },
 ];
-
 const communityItems = [
-  { title: 'Neon Cyberpunk',   tags: '1girl, cyberpunk, neon_lights, city, rain',       likes: 542, author: 'NeonArtist'    },
-  { title: 'Vintage Portrait', tags: '1girl, vintage, soft_lighting, dress, garden',    likes: 423, author: 'RetroCreative' },
-  { title: 'Fantasy Queen',    tags: '1girl, crown, throne_room, castle, elegant',      likes: 678, author: 'FantasyMaster' },
-  { title: 'Casual & Cute',    tags: '1girl, hoodie, smile, park, cherry_blossoms',     likes: 501, author: 'CuteCollector' },
+  { title: 'Neon Cyberpunk',   tags: '1girl, cyberpunk, neon_lights, city, rain',    likes: 542, author: 'NeonArtist'    },
+  { title: 'Vintage Portrait', tags: '1girl, vintage, soft_lighting, dress, garden', likes: 423, author: 'RetroCreative' },
+  { title: 'Fantasy Queen',    tags: '1girl, crown, throne_room, castle, elegant',   likes: 678, author: 'FantasyMaster' },
+  { title: 'Casual & Cute',    tags: '1girl, hoodie, smile, park, cherry_blossoms',  likes: 501, author: 'CuteCollector' },
 ];
 
-function galleryCard(item) {
-  return `
-    <div class="gallery-card" style="padding:1.25rem;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.18);border-radius:14px;cursor:pointer;">
-      <div style="width:100%;height:180px;background:linear-gradient(135deg,rgba(99,102,241,.25),rgba(168,85,247,.15));border-radius:10px;margin-bottom:1rem;display:flex;align-items:center;justify-content:center;font-size:2.5rem;">🎨</div>
-      <h3 style="font-size:1rem;font-weight:600;margin-bottom:.4rem;color:#e0e7ff;">${item.title}</h3>
-      <p style="font-size:.8rem;color:#a5b4fc;margin-bottom:1rem;line-height:1.5;">${item.tags}</p>
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span class="like-btn" style="color:#64748b;font-size:.85rem;cursor:pointer;">♥ ${item.likes}</span>
-        <button onclick="navigator.clipboard.writeText('${item.tags}')" style="padding:.45rem .9rem;background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;border:none;border-radius:6px;font-size:.78rem;cursor:pointer;font-weight:600;">Copy</button>
+function buildCard(item, accent) {
+  const tags = item.tags.replace(/'/g, '&#39;');
+  return `<div class="gallery-card bg-indigo-950/40 border border-${accent}-900/40 rounded-2xl overflow-hidden cursor-pointer">
+    <div class="h-36 sm:h-44 bg-gradient-to-br from-${accent}-900/40 to-${accent}-950/20 flex items-center justify-center text-4xl">
+      ${accent === 'purple' ? '🌟' : '🎨'}
+    </div>
+    <div class="p-3 sm:p-4">
+      <h3 class="text-sm font-semibold text-slate-200 mb-1">${item.title}</h3>
+      <p class="text-xs text-slate-500 mb-2 leading-relaxed line-clamp-2">${item.tags}</p>
+      ${item.author ? `<p class="text-[11px] text-indigo-400 mb-2">by ${item.author}</p>` : ''}
+      <div class="flex items-center justify-between">
+        <span class="text-xs text-slate-600">♥ ${item.likes}</span>
+        <button onclick="navigator.clipboard.writeText('${tags}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r from-${accent === 'purple' ? 'purple-600 to-pink-600' : 'indigo-600 to-purple-600'} text-white hover:opacity-90 active:scale-95 transition-all">
+          Copy
+        </button>
       </div>
-    </div>`;
-}
-
-function communityCard(item) {
-  return `
-    <div class="gallery-card" style="padding:1.25rem;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.18);border-radius:14px;cursor:pointer;">
-      <div style="width:100%;height:180px;background:linear-gradient(135deg,rgba(168,85,247,.25),rgba(99,102,241,.15));border-radius:10px;margin-bottom:1rem;display:flex;align-items:center;justify-content:center;font-size:2.5rem;">🌟</div>
-      <h3 style="font-size:1rem;font-weight:600;margin-bottom:.4rem;color:#e0e7ff;">${item.title}</h3>
-      <p style="font-size:.8rem;color:#e9d5ff;margin-bottom:.5rem;line-height:1.5;">${item.tags}</p>
-      <p style="font-size:.75rem;color:#a5b4fc;margin-bottom:1rem;">by ${item.author}</p>
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span class="like-btn" style="color:#64748b;font-size:.85rem;cursor:pointer;">♥ ${item.likes}</span>
-        <button onclick="navigator.clipboard.writeText('${item.tags}')" style="padding:.45rem .9rem;background:linear-gradient(135deg,#a855f7,#ec4899);color:#fff;border:none;border-radius:6px;font-size:.78rem;cursor:pointer;font-weight:600;">Copy</button>
-      </div>
-    </div>`;
+    </div>
+  </div>`;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('galleryContainer').innerHTML    = galleryItems.map(galleryCard).join('');
-  document.getElementById('communityContainer').innerHTML  = communityItems.map(communityCard).join('');
+  document.getElementById('galleryContainer').innerHTML   = galleryItems.map(i => buildCard(i, 'indigo')).join('');
+  document.getElementById('communityContainer').innerHTML = communityItems.map(i => buildCard(i, 'purple')).join('');
 });
 </script>
 
