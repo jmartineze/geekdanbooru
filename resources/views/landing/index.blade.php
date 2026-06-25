@@ -42,9 +42,14 @@
     <a href="#features" class="nav-link" style="font-size:.9rem;color:#a5b4fc;text-decoration:none;">Features</a>
     <a href="#gallery"  class="nav-link" style="font-size:.9rem;color:#a5b4fc;text-decoration:none;">Gallery</a>
     <a href="#community" class="nav-link" style="font-size:.9rem;color:#a5b4fc;text-decoration:none;">Community</a>
-    {{-- Future auth --}}
-    <button style="padding:.55rem 1.3rem;border:1px solid #6366f1;border-radius:6px;background:transparent;color:#6366f1;font-weight:500;cursor:pointer;font-size:.9rem;" class="btn-outline">Log In</button>
-    <button style="padding:.55rem 1.3rem;border:none;border-radius:6px;background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;font-weight:600;cursor:pointer;font-size:.9rem;" class="btn-primary">Sign Up</button>
+    @auth
+      <span style="font-size:.9rem;color:#a5b4fc;">Hi, {{ auth()->user()->name }}</span>
+      <a href="/builder" style="padding:.55rem 1.3rem;border:none;border-radius:6px;background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;font-weight:600;font-size:.9rem;text-decoration:none;" class="btn-primary">Open Builder</a>
+      <form method="POST" action="/logout" style="margin:0;">@csrf<button type="submit" style="padding:.55rem 1.3rem;border:1px solid rgba(99,102,241,.4);border-radius:6px;background:transparent;color:#a5b4fc;font-weight:500;cursor:pointer;font-size:.9rem;">Log Out</button></form>
+    @else
+      <a href="/login"    style="padding:.55rem 1.3rem;border:1px solid #6366f1;border-radius:6px;background:transparent;color:#6366f1;font-weight:500;font-size:.9rem;text-decoration:none;" class="btn-outline">Log In</a>
+      <a href="/register" style="padding:.55rem 1.3rem;border:none;border-radius:6px;background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;font-weight:600;font-size:.9rem;text-decoration:none;" class="btn-primary">Sign Up</a>
+    @endauth
   </div>
 </nav>
 
@@ -58,7 +63,7 @@
   <div style="position:relative;z-index:2;max-width:860px;margin:0 auto;">
 
     <div style="display:inline-block;padding:.35rem 1rem;border:1px solid rgba(99,102,241,.35);border-radius:999px;font-size:.8rem;color:#a5b4fc;margin-bottom:1.5rem;background:rgba(99,102,241,.08);">
-      🎨 Free tool — no credit card required
+      🎨 Free tool
     </div>
 
     <h1 style="font-size:3.4rem;font-weight:700;line-height:1.2;margin-bottom:1.25rem;background:linear-gradient(135deg,#e0e7ff 0%,#a5b4fc 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
