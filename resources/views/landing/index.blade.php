@@ -182,11 +182,11 @@
       @foreach($publicPrompts as $p)
       <div class="gallery-card bg-indigo-950/40 border border-indigo-900/40 rounded-2xl overflow-hidden cursor-pointer flex flex-col">
         @if($p->image_path)
-        <div class="aspect-video bg-slate-800 overflow-hidden">
+        <div class="aspect-[3/4] bg-slate-800 overflow-hidden">
           <img src="/storage/{{ $p->image_path }}" alt="{{ $p->name }}" class="w-full h-full object-cover" loading="lazy">
         </div>
         @else
-        <div class="aspect-video bg-gradient-to-br from-indigo-900/40 to-purple-900/20 flex items-center justify-center text-4xl">🎨</div>
+        <div class="aspect-[3/4] bg-gradient-to-br from-indigo-900/40 to-purple-900/20 flex items-center justify-center text-4xl">🎨</div>
         @endif
         <div class="flex-1 flex flex-col p-3 sm:p-4">
           <h3 class="text-sm font-semibold text-slate-200 mb-1 line-clamp-1">{{ $p->name }}</h3>
@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
   el.innerHTML = placeholderItems.map(item => {
     const escaped = item.tags.replace(/'/g, "\\'");
     return `<div class="gallery-card bg-indigo-950/40 border border-purple-900/40 rounded-2xl overflow-hidden">
-      <div class="aspect-video bg-gradient-to-br from-purple-900/40 to-indigo-900/20 flex items-center justify-center text-4xl">🌟</div>
+      <div class="aspect-[3/4] bg-gradient-to-br from-purple-900/40 to-indigo-900/20 flex items-center justify-center text-4xl">🌟</div>
       <div class="p-3 sm:p-4">
         <h3 class="text-sm font-semibold text-slate-200 mb-1">${item.title}</h3>
         <p class="text-xs text-slate-500 mb-2 leading-relaxed line-clamp-2">${item.tags}</p>
