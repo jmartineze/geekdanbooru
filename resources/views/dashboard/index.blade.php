@@ -1,14 +1,21 @@
 <x-layouts.app>
+{{-- Auth & CSRF available to Alpine --}}
+<script>
+  window.__auth  = @json(auth()->check());
+  window.__csrf  = '{{ csrf_token() }}';
+  window.__user  = @json(auth()->check() ? auth()->user()->name : null);
+</script>
+
 <div
     x-data="promptBuilder()"
-    x-init="loadSection(activeSection)"
+    x-init="init()"
     class="flex flex-col h-screen overflow-hidden"
 >
     {{-- ── HEADER ──────────────────────────────────────────────────────── --}}
     <header class="shrink-0 border-b border-slate-800 bg-slate-900/70 backdrop-blur px-4 py-2.5 z-20">
         <div class="max-w-screen-2xl mx-auto flex items-center justify-between gap-4">
             <div class="flex items-center gap-3">
-                <h1 class="text-base font-bold text-white tracking-tight">{{ __('ui.app_name') }}</h1>
+                <a href="/" class="text-base font-bold text-white tracking-tight hover:text-brand-400 transition-colors">{{ __('ui.app_name') }}</a>
                 <span class="text-xs text-slate-600">·</span>
                 <span class="text-xs text-slate-500">{{ __('ui.tags_count', ['count' => number_format($totalTags)]) }}</span>
             </div>
@@ -24,6 +31,17 @@
                 >
                     <span x-text="nsfwEnabled ? '🔞 NSFW ON' : '🔒 NSFW OFF'"></span>
                 </button>
+
+                {{-- My Prompts (auth only) --}}
+                @auth
+                <a href="/my-prompts"
+                   class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800/80 border border-slate-700 text-slate-300 text-xs font-medium hover:border-brand-500 hover:text-white transition-all">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+                    </svg>
+                    My Prompts
+                </a>
+                @endauth
 
                 {{-- Clear all --}}
                 <button
@@ -99,22 +117,16 @@
                 {{ __('ui.loading') }}
             </div>
 
-            {{-- Tag groups (accordions) --}}
+            {{-- Tag groups --}}
             <div x-show="!loading" class="flex-1 overflow-y-auto divide-y divide-slate-800/50">
                 <template x-for="(group, subsection) in groupedTags" :key="subsection">
                     <div x-data="{ open: true, showAll: false }">
-
-                        {{-- Accordion header --}}
                         <button
                             @click="open = !open"
                             class="flex items-center justify-between w-full px-4 py-2.5 text-left hover:bg-white/3 transition-colors group"
                         >
                             <div class="flex items-center gap-2">
-                                <svg
-                                    :class="open ? 'rotate-90' : ''"
-                                    class="w-3 h-3 text-slate-600 group-hover:text-slate-400 transition-transform"
-                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                >
+                                <svg :class="open ? 'rotate-90' : ''" class="w-3 h-3 text-slate-600 group-hover:text-slate-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
                                 </svg>
                                 <span class="text-xs font-semibold text-slate-400 group-hover:text-slate-200 transition-colors uppercase tracking-wider" x-text="subsectionLabel(subsection)"></span>
@@ -127,13 +139,9 @@
                             ></span>
                         </button>
 
-                        {{-- Tag pills --}}
                         <div x-show="open" class="px-4 pb-3 pt-1">
                             <div class="flex flex-wrap gap-1.5">
-                                <template
-                                    x-for="(tag, idx) in (showAll ? group : group.slice(0, 30))"
-                                    :key="tag.name"
-                                >
+                                <template x-for="(tag, idx) in (showAll ? group : group.slice(0, 30))" :key="tag.name">
                                     <button
                                         @click="toggleTag(tag)"
                                         :class="tagPillClass(tag)"
@@ -141,15 +149,11 @@
                                         class="tag-pill"
                                     >
                                         <span x-text="tag.name"></span>
-                                        <span
-                                            x-show="tag.is_nsfw && !selected[tag.name]"
-                                            class="text-[9px] opacity-50 ml-0.5"
-                                        >18+</span>
+                                        <span x-show="tag.is_nsfw && !selected[tag.name]" class="text-[9px] opacity-50 ml-0.5">18+</span>
                                     </button>
                                 </template>
                             </div>
 
-                            {{-- Show more / less --}}
                             <div x-show="group.length > 30" class="mt-2">
                                 <button
                                     @click="showAll = !showAll"
@@ -160,18 +164,14 @@
                                 ></button>
                             </div>
 
-                            <p
-                                x-show="group.length === 0"
-                                class="text-xs text-slate-600 py-1"
-                            >{{ __('ui.no_tags_found') }}</p>
+                            <p x-show="group.length === 0" class="text-xs text-slate-600 py-1">{{ __('ui.no_tags_found') }}</p>
                         </div>
                     </div>
                 </template>
 
-                <div
-                    x-show="Object.keys(groupedTags).length === 0 && !loading"
-                    class="py-16 text-center text-slate-500 text-sm"
-                >{{ __('ui.no_tags_found') }}</div>
+                <div x-show="Object.keys(groupedTags).length === 0 && !loading" class="py-16 text-center text-slate-500 text-sm">
+                    {{ __('ui.no_tags_found') }}
+                </div>
             </div>
         </div>
 
@@ -181,19 +181,43 @@
             {{-- Header --}}
             <div class="shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-slate-800">
                 <h2 class="text-xs font-bold text-slate-300 uppercase tracking-wider">{{ __('ui.prompt_label') }}</h2>
-                <button
-                    @click="copyPrompt()"
-                    :disabled="Object.keys(selected).length === 0"
-                    :class="Object.keys(selected).length === 0
-                        ? 'opacity-30 cursor-not-allowed bg-slate-700'
-                        : 'bg-brand-600 hover:bg-brand-700 cursor-pointer'"
-                    class="px-3 py-1 text-xs font-semibold rounded-md text-white transition-all"
-                >
-                    <span x-text="copied ? '✓ {{ __('ui.copied') }}' : '{{ __('ui.copy_prompt') }}'"></span>
-                </button>
+                <div class="flex items-center gap-1.5">
+                    {{-- Copy icon button --}}
+                    <button
+                        @click="copyPrompt()"
+                        :disabled="Object.keys(selected).length === 0"
+                        :class="Object.keys(selected).length === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:text-brand-400 hover:bg-slate-700'"
+                        :title="copied ? '{{ __('ui.copied') }}' : '{{ __('ui.copy_prompt') }}'"
+                        class="p-1.5 rounded-md text-slate-400 transition-all"
+                    >
+                        {{-- Clipboard icon --}}
+                        <svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                        </svg>
+                        {{-- Check icon --}}
+                        <svg x-show="copied" class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </button>
+
+                    {{-- Save button --}}
+                    <button
+                        @click="openSave()"
+                        :disabled="Object.keys(selected).length === 0"
+                        :class="Object.keys(selected).length === 0
+                            ? 'opacity-30 cursor-not-allowed bg-slate-700'
+                            : 'bg-brand-600 hover:bg-brand-700 cursor-pointer'"
+                        class="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md text-white transition-all"
+                    >
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+                        </svg>
+                        Save
+                    </button>
+                </div>
             </div>
 
-            {{-- Prompt textarea display --}}
+            {{-- Prompt display --}}
             <div class="shrink-0 px-3 py-3 border-b border-slate-800">
                 <div
                     class="min-h-[5rem] max-h-32 overflow-y-auto bg-slate-900/60 border border-slate-700/50 rounded-lg px-3 py-2.5 text-xs leading-relaxed break-all select-all"
@@ -202,12 +226,10 @@
                 ></div>
             </div>
 
-            {{-- Selected tags list --}}
+            {{-- Selected tags --}}
             <div class="flex-1 overflow-y-auto px-3 py-3">
                 <div class="flex items-center justify-between mb-2">
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                        {{ __('ui.selected_tags') }}
-                    </p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{{ __('ui.selected_tags') }}</p>
                     <span
                         x-show="Object.keys(selected).length > 0"
                         x-text="Object.keys(selected).length"
@@ -224,15 +246,164 @@
                             class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border"
                         >
                             <span x-text="tag"></span>
-                            <button
-                                @click="removeTag(tag)"
-                                class="text-[9px] opacity-60 hover:opacity-100 hover:text-red-400 transition-all ml-0.5"
-                            >✕</button>
+                            <button @click="removeTag(tag)" class="text-[9px] opacity-60 hover:opacity-100 hover:text-red-400 transition-all ml-0.5">✕</button>
                         </span>
                     </template>
                 </div>
             </div>
         </aside>
+    </div>
+
+    {{-- ── SAVE MODAL ───────────────────────────────────────────────────── --}}
+    <div
+        x-show="saveOpen"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        @keydown.escape.window="saveOpen = false"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+        style="display:none"
+    >
+        <div
+            @click.stop
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100"
+            class="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden"
+        >
+            {{-- Modal header --}}
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+                <h3 class="text-base font-bold text-white">Save Prompt</h3>
+                <button @click="saveOpen = false" class="text-slate-500 hover:text-slate-300 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Success state --}}
+            <div x-show="saveSuccess" class="px-5 py-10 text-center">
+                <div class="text-4xl mb-3">✅</div>
+                <p class="text-white font-semibold">Prompt saved!</p>
+                <p class="text-slate-400 text-sm mt-1">Go to <a href="/my-prompts" class="text-brand-400 hover:underline">My Prompts</a> to manage it.</p>
+            </div>
+
+            {{-- Form --}}
+            <form x-show="!saveSuccess" @submit.prevent="submitSave()" class="px-5 py-5 space-y-4">
+
+                {{-- Name --}}
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">Prompt name <span class="text-rose-400">*</span></label>
+                    <input
+                        type="text"
+                        x-model="saveName"
+                        placeholder="e.g. Elegant Fantasy Character"
+                        maxlength="120"
+                        class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/50 transition-colors"
+                        required
+                    >
+                </div>
+
+                {{-- Section selector --}}
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">Save which part?</label>
+                    <div class="grid grid-cols-5 gap-1">
+                        <template x-for="sec in ['full','character','pose','outfit','scene']" :key="sec">
+                            <button
+                                type="button"
+                                @click="saveSection = sec"
+                                :class="saveSection === sec
+                                    ? 'bg-brand-600 border-brand-500 text-white'
+                                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'"
+                                class="px-1 py-1.5 rounded-md border text-[10px] font-semibold uppercase tracking-wide transition-all capitalize"
+                                x-text="sec"
+                            ></button>
+                        </template>
+                    </div>
+                    {{-- Preview --}}
+                    <div class="mt-2 bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-[11px] text-slate-400 leading-relaxed break-all max-h-20 overflow-y-auto">
+                        <span x-text="saveSectionPrompt || 'No tags selected for this section.'"></span>
+                    </div>
+                </div>
+
+                {{-- Image upload --}}
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">
+                        Upload result image <span class="text-slate-500 font-normal">(optional, max 1 MB)</span>
+                    </label>
+                    <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-700 rounded-lg cursor-pointer hover:border-brand-500/60 hover:bg-brand-600/5 transition-all">
+                        <template x-if="!saveImageName">
+                            <div class="text-center">
+                                <svg class="w-6 h-6 text-slate-600 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <span class="text-xs text-slate-500">Click to choose image</span>
+                            </div>
+                        </template>
+                        <template x-if="saveImageName">
+                            <div class="text-center">
+                                <span class="text-xs text-brand-400 font-medium" x-text="saveImageName"></span>
+                                <p class="text-[10px] text-slate-500 mt-0.5">Click to change</p>
+                            </div>
+                        </template>
+                        <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/gif,image/webp"
+                            class="hidden"
+                            @change="handleImageUpload($event)"
+                            x-ref="imageInput"
+                        >
+                    </label>
+                    <p x-show="saveImageError" x-text="saveImageError" class="mt-1 text-xs text-rose-400"></p>
+                </div>
+
+                {{-- Disclaimer (shown when image selected) --}}
+                <div x-show="saveImageName" class="bg-slate-800/60 border border-slate-700/50 rounded-lg p-3">
+                    <label class="flex gap-2.5 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            x-model="saveDisclaimer"
+                            class="mt-0.5 shrink-0 accent-brand-500"
+                        >
+                        <span class="text-[11px] text-slate-400 leading-relaxed">
+                            I certify that I have the rights to upload this image. I understand that
+                            Geekguayaco is not responsible for the intellectual property of uploaded images.
+                            Images may be removed from the site without prior notice if they are found to
+                            violate copyright or usage policies.
+                        </span>
+                    </label>
+                </div>
+
+                {{-- Error --}}
+                <p x-show="saveError" x-text="saveError" class="text-xs text-rose-400"></p>
+
+                {{-- Actions --}}
+                <div class="flex gap-2 pt-1">
+                    <button
+                        type="button"
+                        @click="saveOpen = false"
+                        class="flex-1 py-2 rounded-lg border border-slate-700 text-slate-400 text-sm font-medium hover:border-slate-500 hover:text-slate-200 transition-all"
+                    >Cancel</button>
+                    <button
+                        type="submit"
+                        :disabled="savePending || !saveName.trim() || (saveImageName && !saveDisclaimer)"
+                        :class="(savePending || !saveName.trim() || (saveImageName && !saveDisclaimer))
+                            ? 'opacity-40 cursor-not-allowed bg-brand-600'
+                            : 'bg-brand-600 hover:bg-brand-700'"
+                        class="flex-1 py-2 rounded-lg text-white text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                    >
+                        <svg x-show="savePending" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                        </svg>
+                        <span x-text="savePending ? 'Saving…' : 'Save Prompt'"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -252,8 +423,47 @@ function promptBuilder() {
         countBySection:    { character: 0, pose: 0, outfit: 0, scene: 0 },
         countBySubsection: {},
 
+        // Save modal state
+        saveOpen:        false,
+        saveName:        '',
+        saveSection:     'full',
+        saveImage:       null,
+        saveImageName:   '',
+        saveImageError:  '',
+        saveDisclaimer:  false,
+        savePending:     false,
+        saveSuccess:     false,
+        saveError:       '',
+
         get promptText() {
             return Object.keys(this.selected).join(', ');
+        },
+
+        get saveSectionPrompt() {
+            if (this.saveSection === 'full') return this.promptText;
+            return Object.entries(this.selected)
+                .filter(([_, info]) => info.section === this.saveSection)
+                .map(([tag]) => tag)
+                .join(', ');
+        },
+
+        init() {
+            // Restore pending save from sessionStorage (after login redirect)
+            const pending = sessionStorage.getItem('pendingSave');
+            if (pending) {
+                try {
+                    const data = JSON.parse(pending);
+                    this.selected = data.selected || {};
+                    // Recalculate counts
+                    Object.entries(this.selected).forEach(([, info]) => {
+                        if (info.section)    this.countBySection[info.section]    = (this.countBySection[info.section] || 0) + 1;
+                        if (info.subsection) this.countBySubsection[info.subsection] = (this.countBySubsection[info.subsection] || 0) + 1;
+                    });
+                    sessionStorage.removeItem('pendingSave');
+                    this.$nextTick(() => { this.saveOpen = true; });
+                } catch (_) {}
+            }
+            this.loadSection(this.activeSection);
         },
 
         async loadSection(section) {
@@ -262,11 +472,8 @@ function promptBuilder() {
             this.searchQuery = '';
 
             try {
-                const params = new URLSearchParams({
-                    section: section,
-                    nsfw:    this.nsfwEnabled ? '1' : '0',
-                });
-                const res    = await fetch('/api/tags?' + params.toString());
+                const params = new URLSearchParams({ section, nsfw: this.nsfwEnabled ? '1' : '0' });
+                const res    = await fetch('/api/tags?' + params);
                 this.allTags = await res.json();
                 this.applyFilter();
             } catch (e) {
@@ -278,11 +485,7 @@ function promptBuilder() {
 
         applyFilter() {
             const q    = this.searchQuery.toLowerCase().trim();
-            const tags = q
-                ? this.allTags.filter(t => t.name.includes(q))
-                : this.allTags;
-
-            // Group by subsection, preserving API order (sorted by post_count DESC)
+            const tags = q ? this.allTags.filter(t => t.name.includes(q)) : this.allTags;
             const groups = {};
             tags.forEach(tag => {
                 if (!groups[tag.subsection]) groups[tag.subsection] = [];
@@ -291,9 +494,7 @@ function promptBuilder() {
             this.groupedTags = groups;
         },
 
-        filterTags() {
-            this.applyFilter();
-        },
+        filterTags() { this.applyFilter(); },
 
         switchSection(section) {
             this.activeSection = section;
@@ -306,15 +507,10 @@ function promptBuilder() {
             } else {
                 this.selected = {
                     ...this.selected,
-                    [tag.name]: {
-                        is_nsfw:    tag.is_nsfw,
-                        section:    this.activeSection,
-                        subsection: tag.subsection,
-                    }
+                    [tag.name]: { is_nsfw: tag.is_nsfw, section: this.activeSection, subsection: tag.subsection }
                 };
                 this.countBySection[this.activeSection]++;
-                this.countBySubsection[tag.subsection] =
-                    (this.countBySubsection[tag.subsection] || 0) + 1;
+                this.countBySubsection[tag.subsection] = (this.countBySubsection[tag.subsection] || 0) + 1;
             }
         },
 
@@ -324,7 +520,7 @@ function promptBuilder() {
             const copy = { ...this.selected };
             delete copy[name];
             this.selected = copy;
-            if (this.countBySection[info.section] > 0)     this.countBySection[info.section]--;
+            if (this.countBySection[info.section] > 0)       this.countBySection[info.section]--;
             if ((this.countBySubsection[info.subsection] || 0) > 0) this.countBySubsection[info.subsection]--;
         },
 
@@ -341,6 +537,82 @@ function promptBuilder() {
             setTimeout(() => this.copied = false, 2000);
         },
 
+        // ── Save modal ───────────────────────────────────────────────────
+
+        openSave() {
+            if (Object.keys(this.selected).length === 0) return;
+            if (!window.__auth) {
+                sessionStorage.setItem('pendingSave', JSON.stringify({ selected: this.selected }));
+                window.location = '/login';
+                return;
+            }
+            this.saveName       = '';
+            this.saveSection    = 'full';
+            this.saveImage      = null;
+            this.saveImageName  = '';
+            this.saveImageError = '';
+            this.saveDisclaimer = false;
+            this.saveError      = '';
+            this.saveSuccess    = false;
+            this.saveOpen       = true;
+        },
+
+        handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) { this.saveImage = null; this.saveImageName = ''; return; }
+            if (file.size > 1024 * 1024) {
+                this.saveImageError = 'Image must be under 1 MB.';
+                e.target.value = '';
+                this.saveImage = null; this.saveImageName = '';
+                return;
+            }
+            const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowed.includes(file.type)) {
+                this.saveImageError = 'Only JPEG, PNG, GIF or WebP images are allowed.';
+                e.target.value = '';
+                this.saveImage = null; this.saveImageName = '';
+                return;
+            }
+            this.saveImageError = '';
+            this.saveImage      = file;
+            this.saveImageName  = file.name;
+        },
+
+        async submitSave() {
+            if (!this.saveName.trim()) return;
+            if (this.saveImageName && !this.saveDisclaimer) return;
+            if (!this.saveSectionPrompt.trim()) {
+                this.saveError = 'No tags selected for the chosen section.';
+                return;
+            }
+
+            this.savePending = true;
+            this.saveError   = '';
+
+            const fd = new FormData();
+            fd.append('_token',      window.__csrf);
+            fd.append('name',        this.saveName.trim());
+            fd.append('section',     this.saveSection);
+            fd.append('prompt_text', this.saveSectionPrompt);
+            if (this.saveImage) fd.append('image', this.saveImage);
+            if (this.saveImageName) fd.append('disclaimer', '1');
+
+            try {
+                const res = await fetch('/prompts', { method: 'POST', body: fd });
+                if (res.ok) {
+                    this.saveSuccess = true;
+                    setTimeout(() => { this.saveOpen = false; this.saveSuccess = false; }, 3000);
+                } else {
+                    const data = await res.json().catch(() => ({}));
+                    this.saveError = data.message || 'Could not save. Please try again.';
+                }
+            } catch (_) {
+                this.saveError = 'Network error. Please try again.';
+            } finally {
+                this.savePending = false;
+            }
+        },
+
         tagPillClass(tag) {
             const sel = !!this.selected[tag.name];
             if (tag.is_nsfw) return sel ? 'tag-pill-nsfw-selected' : 'tag-pill-nsfw';
@@ -348,8 +620,7 @@ function promptBuilder() {
         },
 
         subsectionLabel(key) {
-            return SUBSECTION_LABELS[key]
-                || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            return SUBSECTION_LABELS[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         },
 
         formatPostCount(n) {
