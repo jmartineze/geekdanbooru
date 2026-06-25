@@ -1,9 +1,5 @@
 <x-layouts.app>
-<div
-    x-data="myPrompts()"
-    x-init="init()"
-    class="min-h-screen bg-slate-950 py-8 px-4"
->
+<div class="min-h-screen bg-slate-950 py-8 px-4">
     <div class="max-w-5xl mx-auto">
 
         {{-- Header --}}
@@ -21,14 +17,12 @@
             </a>
         </div>
 
-        {{-- Flash success --}}
         @if(session('success'))
         <div class="mb-6 bg-green-900/40 border border-green-700/50 text-green-300 rounded-lg px-4 py-3 text-sm">
             {{ session('success') }}
         </div>
         @endif
 
-        {{-- Empty state --}}
         @if($prompts->isEmpty())
         <div class="text-center py-24">
             <svg class="w-14 h-14 text-slate-700 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,29 +36,29 @@
             @foreach($prompts as $prompt)
             <div
                 x-data="{
-                    editing: false,
+                    editing:  false,
                     editName: @js($prompt->name),
-                    isPublic: @js($prompt->is_public),
+                    isPublic: @js((bool)$prompt->is_public),
                     deleting: false,
-                    copied: false,
-                    saving: false,
-                    error: '',
-                    promptId: {{ $prompt->id }},
+                    copied:   false,
+                    saving:   false,
+                    error:    '',
+                    id:       {{ $prompt->id }},
+                    csrf:     '{{ csrf_token() }}',
 
                     async togglePublic() {
-                        this.saving = true;
-                        this.error  = '';
+                        this.saving  = true;
+                        this.error   = '';
+                        const was    = this.isPublic;
                         this.isPublic = !this.isPublic;
-                        const res = await fetch('/prompts/' + this.promptId, {
-                            method: 'PATCH',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                            },
-                            body: JSON.stringify({ is_public: this.isPublic }),
-                        });
-                        if (!res.ok) { this.isPublic = !this.isPublic; this.error = 'Could not update.'; }
+                        try {
+                            const res = await fetch('/prompts/' + this.id + '/update', {
+                                method: 'POST',
+                                headers: { 'X-CSRF-TOKEN': this.csrf, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                                body: JSON.stringify({ is_public: this.isPublic }),
+                            });
+                            if (!res.ok) { this.isPublic = was; this.error = 'Could not update visibility.'; }
+                        } catch(e) { this.isPublic = was; this.error = 'Network error.'; }
                         this.saving = false;
                     },
 
@@ -72,28 +66,29 @@
                         if (!this.editName.trim()) return;
                         this.saving = true;
                         this.error  = '';
-                        const res = await fetch('/prompts/' + this.promptId, {
-                            method: 'PATCH',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                            },
-                            body: JSON.stringify({ name: this.editName.trim() }),
-                        });
-                        if (res.ok) { this.editing = false; }
-                        else        { this.error = 'Could not save.'; }
+                        try {
+                            const res = await fetch('/prompts/' + this.id + '/update', {
+                                method: 'POST',
+                                headers: { 'X-CSRF-TOKEN': this.csrf, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                                body: JSON.stringify({ name: this.editName.trim() }),
+                            });
+                            if (res.ok) { this.editing = false; }
+                            else        { this.error = 'Could not save name.'; }
+                        } catch(e) { this.error = 'Network error.'; }
                         this.saving = false;
                     },
 
                     async deletePrompt() {
                         this.deleting = true;
-                        const res = await fetch('/prompts/' + this.promptId, {
-                            method: 'DELETE',
-                            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                        });
-                        if (res.ok) { $el.closest('[x-data]').remove(); }
-                        else        { this.error = 'Could not delete.'; this.deleting = false; }
+                        this.error    = '';
+                        try {
+                            const res = await fetch('/prompts/' + this.id + '/delete', {
+                                method: 'POST',
+                                headers: { 'X-CSRF-TOKEN': this.csrf, 'Accept': 'application/json' },
+                            });
+                            if (res.ok) { $el.remove(); }
+                            else        { this.error = 'Could not delete.'; this.deleting = false; }
+                        } catch(e) { this.error = 'Network error.'; this.deleting = false; }
                     },
 
                     async copyPrompt() {
@@ -107,9 +102,10 @@
                 {{-- Image --}}
                 @if($prompt->image_path)
                 <div class="aspect-video bg-slate-800 overflow-hidden">
-                    <img src="{{ Storage::url($prompt->image_path) }}"
+                    <img src="/storage/{{ $prompt->image_path }}"
                          alt="{{ $prompt->name }}"
-                         class="w-full h-full object-cover">
+                         class="w-full h-full object-cover"
+                         loading="lazy">
                 </div>
                 @else
                 <div class="aspect-video bg-slate-800/50 flex items-center justify-center">
@@ -119,15 +115,14 @@
                 </div>
                 @endif
 
-                {{-- Body --}}
                 <div class="flex-1 flex flex-col p-4 gap-3">
 
-                    {{-- Name (edit inline) --}}
+                    {{-- Name --}}
                     <div>
                         <template x-if="!editing">
                             <div class="flex items-start justify-between gap-2">
                                 <h3 class="text-sm font-semibold text-white leading-snug" x-text="editName"></h3>
-                                <button @click="editing = true" class="shrink-0 text-slate-600 hover:text-slate-300 transition-colors">
+                                <button @click="editing = true" class="shrink-0 text-slate-600 hover:text-slate-300 transition-colors p-0.5">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                     </svg>
@@ -145,13 +140,13 @@
                                     class="flex-1 bg-slate-800 border border-slate-600 rounded-md px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
                                     x-init="$nextTick(() => $el.focus())"
                                 >
-                                <button @click="saveName()" :disabled="saving" class="px-2 py-1 bg-brand-600 hover:bg-brand-700 text-white text-xs rounded-md transition-colors">✓</button>
-                                <button @click="editing = false" class="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded-md transition-colors">✕</button>
+                                <button @click="saveName()" :disabled="saving" class="px-2 py-1 bg-brand-600 hover:bg-brand-700 text-white text-xs rounded-md">✓</button>
+                                <button @click="editing = false" class="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded-md">✕</button>
                             </div>
                         </template>
                     </div>
 
-                    {{-- Meta badges --}}
+                    {{-- Badges --}}
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full
                             {{ match($prompt->section) {
@@ -161,14 +156,11 @@
                                 'scene'     => 'bg-emerald-900/40 text-emerald-300 border border-emerald-800/50',
                                 default     => 'bg-slate-800 text-slate-400 border border-slate-700',
                             } }}">{{ ucfirst($prompt->section) }}</span>
-
                         <span class="text-[10px] text-slate-600">{{ $prompt->created_at->format('M j, Y') }}</span>
                     </div>
 
                     {{-- Prompt preview --}}
-                    <p class="text-[11px] text-slate-500 leading-relaxed line-clamp-3">
-                        {{ $prompt->prompt_text }}
-                    </p>
+                    <p class="text-[11px] text-slate-500 leading-relaxed line-clamp-3">{{ $prompt->prompt_text }}</p>
 
                     <p x-show="error" x-text="error" class="text-[10px] text-rose-400"></p>
 
@@ -222,12 +214,4 @@
         @endif
     </div>
 </div>
-
-<script>
-function myPrompts() {
-    return {
-        init() {}
-    };
-}
-</script>
 </x-layouts.app>

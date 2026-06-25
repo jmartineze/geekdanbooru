@@ -171,35 +171,56 @@
   </div>
 </section>
 
-{{-- ── SITE GALLERY ──────────────────────────────────────────────────────── --}}
-<section id="gallery" class="px-4 py-14 sm:py-20 lg:py-24 bg-gradient-to-br from-indigo-950/40 to-purple-950/30">
+{{-- ── COMMUNITY GALLERY (prompts públicos reales) ───────────────────────── --}}
+<section id="community" class="px-4 py-14 sm:py-20 lg:py-24 bg-gradient-to-br from-indigo-950/40 to-purple-950/30">
   <div class="max-w-6xl mx-auto">
-    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-center text-slate-100 mb-2 sm:mb-3">Featured Gallery</h2>
-    <p class="text-center text-indigo-300 text-sm sm:text-base mb-10 sm:mb-14">Hand-picked prompts from our team</p>
+    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-center text-slate-100 mb-2 sm:mb-3">Community Gallery</h2>
+    <p class="text-center text-indigo-300 text-sm sm:text-base mb-10 sm:mb-14">Top prompts shared by our users</p>
 
-    <div id="galleryContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5"></div>
+    @if($publicPrompts->isNotEmpty())
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      @foreach($publicPrompts as $p)
+      <div class="gallery-card bg-indigo-950/40 border border-indigo-900/40 rounded-2xl overflow-hidden cursor-pointer flex flex-col">
+        @if($p->image_path)
+        <div class="aspect-video bg-slate-800 overflow-hidden">
+          <img src="/storage/{{ $p->image_path }}" alt="{{ $p->name }}" class="w-full h-full object-cover" loading="lazy">
+        </div>
+        @else
+        <div class="aspect-video bg-gradient-to-br from-indigo-900/40 to-purple-900/20 flex items-center justify-center text-4xl">🎨</div>
+        @endif
+        <div class="flex-1 flex flex-col p-3 sm:p-4">
+          <h3 class="text-sm font-semibold text-slate-200 mb-1 line-clamp-1">{{ $p->name }}</h3>
+          <p class="text-xs text-slate-500 mb-2 leading-relaxed line-clamp-2">{{ $p->prompt_text }}</p>
+          @if($p->user)
+          <p class="text-[11px] text-indigo-400 mb-2">by {{ $p->user->name }}</p>
+          @endif
+          <div class="mt-auto flex items-center justify-between">
+            <span class="text-xs text-slate-600">♥ {{ $p->likes_count }}</span>
+            <button
+              onclick="navigator.clipboard.writeText({{ json_encode($p->prompt_text) }}); this.textContent='Copied!'; setTimeout(()=>this.textContent='Copy',2000)"
+              class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:opacity-90 active:scale-95 transition-all"
+            >Copy</button>
+          </div>
+        </div>
+      </div>
+      @endforeach
+    </div>
 
     <div class="text-center mt-8 sm:mt-10">
       <a href="/builder" class="inline-block px-7 py-3 rounded-xl border-2 border-indigo-500 text-indigo-400 font-semibold text-sm hover:bg-indigo-500/10 transition-colors">
         Open Builder →
       </a>
     </div>
-  </div>
-</section>
 
-{{-- ── COMMUNITY GALLERY ─────────────────────────────────────────────────── --}}
-<section id="community" class="bg-[#0f1535] px-4 py-14 sm:py-20 lg:py-24">
-  <div class="max-w-6xl mx-auto">
-    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-center text-slate-100 mb-2 sm:mb-3">Community Prompts</h2>
-    <p class="text-center text-indigo-300 text-sm sm:text-base mb-10 sm:mb-14">Top-liked prompts shared by our users</p>
-
+    @else
+    {{-- Placeholder hasta que haya prompts públicos --}}
     <div id="communityContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5"></div>
-
     <div class="text-center mt-8 sm:mt-10">
-      <button class="px-7 py-3 rounded-xl border-2 border-purple-500 text-purple-400 font-semibold text-sm hover:bg-purple-500/10 transition-colors">
-        Explore Community
-      </button>
+      <a href="/builder" class="inline-block px-7 py-3 rounded-xl border-2 border-indigo-500 text-indigo-400 font-semibold text-sm hover:bg-indigo-500/10 transition-colors">
+        Be the first to share →
+      </a>
     </div>
+    @endif
   </div>
 </section>
 
@@ -225,42 +246,31 @@
 </footer>
 
 <script>
-const galleryItems = [
-  { title: 'Elegant Mystery',   tags: '1girl, long_hair, purple_eyes, evening_gown, moonlight',  likes: 234 },
-  { title: 'Epic Action',       tags: '1girl, katana, dynamic_pose, battle, dark_fantasy',        likes: 189 },
-  { title: 'Cozy School Day',   tags: '1girl, school_uniform, sitting, smile, classroom',         likes: 156 },
-  { title: 'Fantasy Sorceress', tags: '1girl, magic_circle, glowing, wizard_hat, forest',        likes: 312 },
+// Placeholder community cards when no public prompts exist yet
+const placeholderItems = [
+  { title: 'Neon Cyberpunk',   tags: '1girl, cyberpunk, neon_lights, city, rain',    likes: 0 },
+  { title: 'Fantasy Queen',    tags: '1girl, crown, throne_room, castle, elegant',   likes: 0 },
+  { title: 'Cozy School Day',  tags: '1girl, school_uniform, sitting, smile, classroom', likes: 0 },
+  { title: 'Epic Action',      tags: '1girl, katana, dynamic_pose, battle, dark_fantasy', likes: 0 },
 ];
-const communityItems = [
-  { title: 'Neon Cyberpunk',   tags: '1girl, cyberpunk, neon_lights, city, rain',    likes: 542, author: 'NeonArtist'    },
-  { title: 'Vintage Portrait', tags: '1girl, vintage, soft_lighting, dress, garden', likes: 423, author: 'RetroCreative' },
-  { title: 'Fantasy Queen',    tags: '1girl, crown, throne_room, castle, elegant',   likes: 678, author: 'FantasyMaster' },
-  { title: 'Casual & Cute',    tags: '1girl, hoodie, smile, park, cherry_blossoms',  likes: 501, author: 'CuteCollector' },
-];
-
-function buildCard(item, accent) {
-  const tags = item.tags.replace(/'/g, '&#39;');
-  return `<div class="gallery-card bg-indigo-950/40 border border-${accent}-900/40 rounded-2xl overflow-hidden cursor-pointer">
-    <div class="h-36 sm:h-44 bg-gradient-to-br from-${accent}-900/40 to-${accent}-950/20 flex items-center justify-center text-4xl">
-      ${accent === 'purple' ? '🌟' : '🎨'}
-    </div>
-    <div class="p-3 sm:p-4">
-      <h3 class="text-sm font-semibold text-slate-200 mb-1">${item.title}</h3>
-      <p class="text-xs text-slate-500 mb-2 leading-relaxed line-clamp-2">${item.tags}</p>
-      ${item.author ? `<p class="text-[11px] text-indigo-400 mb-2">by ${item.author}</p>` : ''}
-      <div class="flex items-center justify-between">
-        <span class="text-xs text-slate-600">♥ ${item.likes}</span>
-        <button onclick="navigator.clipboard.writeText('${tags}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r from-${accent === 'purple' ? 'purple-600 to-pink-600' : 'indigo-600 to-purple-600'} text-white hover:opacity-90 active:scale-95 transition-all">
-          Copy
-        </button>
-      </div>
-    </div>
-  </div>`;
-}
-
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('galleryContainer').innerHTML   = galleryItems.map(i => buildCard(i, 'indigo')).join('');
-  document.getElementById('communityContainer').innerHTML = communityItems.map(i => buildCard(i, 'purple')).join('');
+  const el = document.getElementById('communityContainer');
+  if (!el) return;
+  el.innerHTML = placeholderItems.map(item => {
+    const escaped = item.tags.replace(/'/g, "\\'");
+    return `<div class="gallery-card bg-indigo-950/40 border border-purple-900/40 rounded-2xl overflow-hidden">
+      <div class="aspect-video bg-gradient-to-br from-purple-900/40 to-indigo-900/20 flex items-center justify-center text-4xl">🌟</div>
+      <div class="p-3 sm:p-4">
+        <h3 class="text-sm font-semibold text-slate-200 mb-1">${item.title}</h3>
+        <p class="text-xs text-slate-500 mb-2 leading-relaxed line-clamp-2">${item.tags}</p>
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-slate-600">♥ example</span>
+          <button onclick="navigator.clipboard.writeText('${escaped}');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',2000)"
+                  class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90 transition-all">Copy</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 });
 </script>
 

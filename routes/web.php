@@ -22,8 +22,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
 
 // Saved prompts (auth required)
 Route::middleware('auth')->group(function () {
-    Route::get('/my-prompts',            [PromptController::class, 'index']);
-    Route::post('/prompts',              [PromptController::class, 'store']);
-    Route::patch('/prompts/{prompt}',    [PromptController::class, 'update']);
-    Route::delete('/prompts/{prompt}',   [PromptController::class, 'destroy']);
+    Route::get('/my-prompts',                  [PromptController::class, 'index']);
+    Route::post('/prompts',                    [PromptController::class, 'store']);
+    Route::post('/prompts/{prompt}/update',    [PromptController::class, 'update']);
+    Route::post('/prompts/{prompt}/delete',    [PromptController::class, 'destroy']);
 });
