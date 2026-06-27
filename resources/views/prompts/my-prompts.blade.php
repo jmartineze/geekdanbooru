@@ -46,17 +46,21 @@
                     id:       {{ $prompt->id }},
                     csrf:     '{{ csrf_token() }}',
 
+                    async patch(data) {
+                        const fd = new FormData();
+                        fd.append('_token',  this.csrf);
+                        fd.append('_method', 'PATCH');
+                        Object.entries(data).forEach(([k,v]) => fd.append(k, v));
+                        return fetch('/prompts/' + this.id, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd });
+                    },
+
                     async togglePublic() {
-                        this.saving  = true;
-                        this.error   = '';
-                        const was    = this.isPublic;
+                        this.saving   = true;
+                        this.error    = '';
+                        const was     = this.isPublic;
                         this.isPublic = !this.isPublic;
                         try {
-                            const res = await fetch('/prompts/' + this.id, {
-                                method: 'PATCH',
-                                headers: { 'X-CSRF-TOKEN': this.csrf, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                                body: JSON.stringify({ is_public: this.isPublic }),
-                            });
+                            const res = await this.patch({ is_public: this.isPublic ? '1' : '0' });
                             if (!res.ok) { this.isPublic = was; this.error = 'Could not update visibility.'; }
                         } catch(e) { this.isPublic = was; this.error = 'Network error.'; }
                         this.saving = false;
@@ -67,11 +71,7 @@
                         this.saving = true;
                         this.error  = '';
                         try {
-                            const res = await fetch('/prompts/' + this.id, {
-                                method: 'PATCH',
-                                headers: { 'X-CSRF-TOKEN': this.csrf, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                                body: JSON.stringify({ name: this.editName.trim() }),
-                            });
+                            const res = await this.patch({ name: this.editName.trim() });
                             if (res.ok) { this.editing = false; }
                             else        { this.error = 'Could not save name.'; }
                         } catch(e) { this.error = 'Network error.'; }
@@ -82,10 +82,10 @@
                         this.deleting = true;
                         this.error    = '';
                         try {
-                            const res = await fetch('/prompts/' + this.id, {
-                                method: 'DELETE',
-                                headers: { 'X-CSRF-TOKEN': this.csrf, 'Accept': 'application/json' },
-                            });
+                            const fd = new FormData();
+                            fd.append('_token',  this.csrf);
+                            fd.append('_method', 'DELETE');
+                            const res = await fetch('/prompts/' + this.id, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd });
                             if (res.ok) { $el.remove(); }
                             else        { this.error = 'Could not delete.'; this.deleting = false; }
                         } catch(e) { this.error = 'Network error.'; this.deleting = false; }
