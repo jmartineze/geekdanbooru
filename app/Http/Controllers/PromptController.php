@@ -55,13 +55,31 @@ class PromptController extends Controller
         $this->authorize('update', $prompt);
 
         $data = $request->validate([
-            'name'      => ['sometimes', 'string', 'max:120'],
-            'is_public' => ['sometimes', 'boolean'],
+            'name'        => ['sometimes', 'string', 'max:120'],
+            'prompt_text' => ['sometimes', 'string', 'max:5000'],
+            'section'     => ['sometimes', 'in:full,character,pose,outfit,scene'],
+            'is_public'   => ['sometimes', 'boolean'],
+            'image'       => ['sometimes', 'nullable', 'image', 'max:1024', 'mimes:jpeg,png,gif,webp'],
+            'disclaimer'  => $request->hasFile('image') ? ['accepted'] : ['nullable'],
+        ], [
+            'disclaimer.accepted' => 'You must accept the image disclaimer to upload.',
         ]);
 
+        if ($request->hasFile('image')) {
+            if ($prompt->image_path) {
+                Storage::disk('public')->delete($prompt->image_path);
+            }
+            $data['image_path'] = $request->file('image')
+                ->store('prompts/' . auth()->id(), 'public');
+        }
+
+        unset($data['image'], $data['disclaimer']);
         $prompt->update($data);
 
-        return response()->json(['message' => 'Updated.']);
+        return response()->json([
+            'message'    => 'Updated.',
+            'image_path' => $prompt->fresh()->image_path,
+        ]);
     }
 
     public function destroy(SavedPrompt $prompt)

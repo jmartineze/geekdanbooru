@@ -38,4 +38,27 @@ class TagController extends Controller
 
         return response()->json($tags);
     }
+
+    public function resolve(Request $request): JsonResponse
+    {
+        $names = collect(explode(',', $request->input('names', '')))
+            ->map(fn($n) => trim($n))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($names->isEmpty()) {
+            return response()->json([]);
+        }
+
+        $tags = Tag::whereIn('name', $names)
+            ->select('id', 'name', 'section', 'subsection', 'post_count', 'is_nsfw')
+            ->get()
+            ->keyBy('name');
+
+        // Preserve original order and include unknown tags as stubs
+        $result = $names->map(fn($name) => $tags->get($name))->filter()->values();
+
+        return response()->json($result);
+    }
 }

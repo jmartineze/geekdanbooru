@@ -411,16 +411,57 @@
                 </button>
             </div>
 
+            {{-- Error banner (siempre visible, sin scroll) --}}
+            <div x-show="saveError && !saveSuccess" class="px-5 pt-3">
+                <div class="flex items-start gap-2 bg-rose-500/15 border border-rose-500/40 rounded-lg px-3 py-2.5">
+                    <svg class="w-4 h-4 text-rose-400 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"/></svg>
+                    <p class="text-sm text-rose-300 leading-snug" x-text="saveError"></p>
+                </div>
+            </div>
+
             {{-- Success --}}
-            <div x-show="saveSuccess" class="px-5 py-12 text-center">
-                <div class="text-4xl mb-3">✅</div>
-                <p class="text-white font-semibold">Prompt saved!</p>
-                <p class="text-slate-400 text-sm mt-1">Go to <a href="/my-prompts" class="text-brand-400 hover:underline">My Prompts</a> to manage it.</p>
+            <div x-show="saveSuccess" class="px-5 py-10 flex flex-col items-center gap-4 text-center">
+                <div class="w-14 h-14 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <svg class="w-7 h-7 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-white font-bold text-lg" x-text="saveMode === 'update' ? 'Prompt updated!' : 'Prompt saved!'"></p>
+                    <p class="text-slate-400 text-sm mt-1" x-text="saveMode === 'update' ? 'Your changes have been saved.' : 'Your prompt is ready in My Prompts.'"></p>
+                </div>
+                <div class="flex gap-2 w-full mt-2">
+                    <button
+                        type="button"
+                        @click="saveOpen = false; saveSuccess = false"
+                        class="flex-1 py-2.5 rounded-lg border border-slate-700 text-slate-300 text-sm font-medium hover:border-slate-500 transition-all"
+                    >Keep editing</button>
+                    <a
+                        href="/my-prompts"
+                        class="flex-1 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold text-center transition-all"
+                    >View in My Prompts</a>
+                </div>
             </div>
 
             {{-- Form --}}
             <form x-show="!saveSuccess" @submit.prevent="submitSave()" class="overflow-y-auto flex-1">
                 <div class="px-5 py-5 space-y-4">
+
+                    {{-- Mode selector (solo si viene de My Prompts) --}}
+                    <div x-show="loadedPromptId" class="grid grid-cols-2 gap-1.5 p-1 bg-slate-800/60 rounded-xl border border-slate-700/50">
+                        <button
+                            type="button"
+                            @click="saveMode = 'update'; saveName = loadedPromptName"
+                            :class="saveMode === 'update' ? 'bg-brand-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'"
+                            class="py-2 rounded-lg text-xs font-semibold transition-all"
+                        >Update existing</button>
+                        <button
+                            type="button"
+                            @click="saveMode = 'new'; saveName = ''"
+                            :class="saveMode === 'new' ? 'bg-brand-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'"
+                            class="py-2 rounded-lg text-xs font-semibold transition-all"
+                        >Save as new</button>
+                    </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1.5">Prompt name <span class="text-rose-400">*</span></label>
@@ -430,7 +471,6 @@
                             placeholder="e.g. Elegant Fantasy Character"
                             maxlength="120"
                             class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/50 transition-colors"
-                            required
                         >
                     </div>
 
@@ -454,15 +494,31 @@
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1.5">
-                            Upload result image <span class="text-slate-500 font-normal">(optional, max 1 MB)</span>
+                            Result image <span class="text-slate-500 font-normal">(optional, max 1 MB)</span>
                         </label>
+
+                        {{-- Imagen existente (solo en modo update) --}}
+                        <template x-if="saveMode === 'update' && loadedImagePath && !saveImageName">
+                            <div class="mb-2">
+                                <div class="relative rounded-lg overflow-hidden border border-slate-700/60 bg-slate-800/60 aspect-[3/4] max-h-52 mx-auto" style="width: fit-content; min-width: 100%">
+                                    <img :src="loadedImagePath" class="w-full h-full object-contain bg-slate-900">
+                                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
+                                        <span class="text-[10px] text-slate-300 font-medium">Current image — will be kept if you don't upload a new one</span>
+                                    </div>
+                                </div>
+                                <p class="mt-1.5 text-[10px] text-amber-400/80 leading-snug">
+                                    If your prompt changed significantly, consider uploading a new result image.
+                                </p>
+                            </div>
+                        </template>
+
                         <label class="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-slate-700 rounded-lg cursor-pointer hover:border-brand-500/60 hover:bg-brand-600/5 transition-all active:scale-[.98]">
                             <template x-if="!saveImageName">
                                 <div class="text-center">
                                     <svg class="w-5 h-5 text-slate-600 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                     </svg>
-                                    <span class="text-xs text-slate-500">Tap to choose image</span>
+                                    <span class="text-xs text-slate-500" x-text="(saveMode === 'update' && loadedImagePath) ? 'Tap to replace image' : 'Tap to choose image'"></span>
                                 </div>
                             </template>
                             <template x-if="saveImageName">
@@ -485,21 +541,18 @@
                         </label>
                     </div>
 
-                    <p x-show="saveError" x-text="saveError" class="text-xs text-rose-400"></p>
-
                     <div class="flex gap-2 pb-1">
                         <button type="button" @click="saveOpen = false" class="flex-1 py-3 sm:py-2 rounded-lg border border-slate-700 text-slate-400 text-sm font-medium hover:border-slate-500 hover:text-slate-200 transition-all">Cancel</button>
                         <button
-                            type="submit"
-                            :disabled="savePending || !saveName.trim() || (saveImageName && !saveDisclaimer)"
-                            :class="(savePending || !saveName.trim() || (saveImageName && !saveDisclaimer)) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-brand-700'"
-                            class="flex-1 py-3 sm:py-2 rounded-lg bg-brand-600 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 active:scale-[.98]"
+                            type="button"
+                            @click="submitSave()"
+                            class="flex-1 py-3 sm:py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 active:scale-[.98]"
                         >
                             <svg x-show="savePending" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
                             </svg>
-                            <span x-text="savePending ? 'Saving…' : 'Save Prompt'"></span>
+                            <span x-text="savePending ? 'Saving…' : (saveMode === 'update' ? 'Update Prompt' : 'Save as New')"></span>
                         </button>
                     </div>
                 </div>
@@ -525,7 +578,13 @@ function promptBuilder() {
         countBySection:    { character: 0, pose: 0, outfit: 0, scene: 0 },
         countBySubsection: {},
 
+        // Loaded from My Prompts
+        loadedPromptId:   null,
+        loadedPromptName: '',
+        loadedImagePath:  '',
+
         saveOpen:        false,
+        saveMode:        'new',   // 'update' | 'new'
         saveName:        '',
         saveSection:     'full',
         saveImage:       null,
@@ -548,7 +607,8 @@ function promptBuilder() {
                 .join(', ');
         },
 
-        init() {
+        async init() {
+            // Restore pending save (after login redirect)
             const pending = sessionStorage.getItem('pendingSave');
             if (pending) {
                 try {
@@ -562,7 +622,38 @@ function promptBuilder() {
                     this.$nextTick(() => { this.saveOpen = true; });
                 } catch (_) {}
             }
+
+            // Pre-load prompt from My Prompts "Open in Builder"
+            const builderLoad = sessionStorage.getItem('builderLoad');
+            if (builderLoad) {
+                try {
+                    const { names, promptId, promptName, imagePath } = JSON.parse(builderLoad);
+                    sessionStorage.removeItem('builderLoad');
+                    if (names) await this.loadFromNames(names);
+                    if (promptId) {
+                        this.loadedPromptId   = promptId;
+                        this.loadedPromptName = promptName || '';
+                        this.loadedImagePath  = imagePath  || '';
+                    }
+                } catch (_) {}
+            }
+
             this.loadSection(this.activeSection);
+        },
+
+        async loadFromNames(names) {
+            try {
+                const res  = await fetch('/api/tags/resolve?names=' + encodeURIComponent(names));
+                const tags = await res.json();
+                tags.forEach(tag => {
+                    this.selected = {
+                        ...this.selected,
+                        [tag.name]: { is_nsfw: tag.is_nsfw, section: tag.section, subsection: tag.subsection }
+                    };
+                    this.countBySection[tag.section]    = (this.countBySection[tag.section] || 0) + 1;
+                    this.countBySubsection[tag.subsection] = (this.countBySubsection[tag.subsection] || 0) + 1;
+                });
+            } catch (_) {}
         },
 
         async loadSection(section) {
@@ -644,12 +735,14 @@ function promptBuilder() {
                 window.location = '/login';
                 return;
             }
-            this.saveName       = '';
+            this.saveMode       = this.loadedPromptId ? 'update' : 'new';
+            this.saveName       = this.loadedPromptId ? this.loadedPromptName : '';
             this.saveSection    = 'full';
             this.saveImage      = null;
             this.saveImageName  = '';
             this.saveImageError = '';
             this.saveDisclaimer = false;
+            this.savePending    = false;
             this.saveError      = '';
             this.saveSuccess    = false;
             this.saveOpen       = true;
@@ -677,12 +770,22 @@ function promptBuilder() {
         },
 
         async submitSave() {
-            if (!this.saveName.trim()) return;
-            if (this.saveImageName && !this.saveDisclaimer) return;
-            if (!this.saveSectionPrompt.trim()) { this.saveError = 'No tags for the chosen section.'; return; }
+            this.savePending = false;
+            this.saveError = '';
+            if (!this.saveName.trim()) {
+                this.saveError = 'Please enter a name for the prompt.';
+                return;
+            }
+            if (this.saveImageName && !this.saveDisclaimer) {
+                this.saveError = 'Please accept the image disclaimer to continue.';
+                return;
+            }
+            if (!this.saveSectionPrompt.trim()) {
+                this.saveError = 'No tags selected for the chosen section.';
+                return;
+            }
 
             this.savePending = true;
-            this.saveError   = '';
 
             const fd = new FormData();
             fd.append('_token',      window.__csrf);
@@ -692,17 +795,33 @@ function promptBuilder() {
             if (this.saveImage)     fd.append('image',      this.saveImage);
             if (this.saveImageName) fd.append('disclaimer', '1');
 
+            let url;
+            if (this.saveMode === 'update' && this.loadedPromptId) {
+                url = '/prompts/' + this.loadedPromptId;
+                fd.append('_method', 'PATCH');
+            } else {
+                url = '/prompts';
+            }
+
             try {
-                const res = await fetch('/prompts', { method: 'POST', body: fd });
+                const res  = await fetch(url, {
+                    method:  'POST',
+                    headers: { 'Accept': 'application/json' },
+                    body:    fd,
+                });
                 if (res.ok) {
+                    if (this.saveMode === 'update') {
+                        this.loadedPromptName = this.saveName.trim();
+                        const data = await res.json().catch(() => ({}));
+                        if (data.image_path) this.loadedImagePath = '/storage/' + data.image_path;
+                    }
                     this.saveSuccess = true;
-                    setTimeout(() => { this.saveOpen = false; this.saveSuccess = false; }, 3000);
                 } else {
                     const data = await res.json().catch(() => ({}));
-                    this.saveError = data.message || 'Could not save. Please try again.';
+                    this.saveError = '[' + res.status + '] ' + (data.message || JSON.stringify(data).slice(0, 120) || 'Could not save.');
                 }
-            } catch (_) {
-                this.saveError = 'Network error. Please try again.';
+            } catch (e) {
+                this.saveError = 'Network error: ' + e.message;
             } finally {
                 this.savePending = false;
             }
