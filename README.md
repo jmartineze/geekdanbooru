@@ -30,6 +30,11 @@ A visual dashboard for building AI image generation prompts using Danbooru tags.
 - **Live prompt panel** — selected tags assemble into a comma-separated prompt in real time
 - **Copy to clipboard** — one click to copy the finished prompt
 - **Tag search** — filter tags across the active section instantly
+- **Save prompts** — authenticated users can save prompts with a name, section, and optional result image
+- **My Prompts** — manage saved prompts: edit name/image, toggle public/private, delete
+- **Open in Builder** — load any saved prompt back into the builder to edit tags
+- **Update / Save as New** — when editing a loaded prompt, choose to update the original or fork a new one
+- **Community gallery** — public prompts shown on the landing page
 - **i18n ready** — UI in English; Spanish locale file included, add more under `lang/`
 
 ---
@@ -178,30 +183,62 @@ php artisan danbooru:import --section=outfit --group=sexual_attire --fresh
 ```
 app/
   Console/Commands/
-    ImportDanbooruTags.php   # Artisan command: danbooru:import
+    ImportDanbooruTags.php      # danbooru:import (API)
+    ImportDanbooruTagsCsv.php   # danbooru:import-csv (recommended)
   Http/Controllers/
-    DashboardController.php  # Main view
-    Api/TagController.php    # GET /api/tags
+    Controller.php              # Base — includes AuthorizesRequests
+    LandingController.php       # Landing page + public gallery
+    DashboardController.php     # Builder view
+    PromptController.php        # Save / update / delete prompts
+    Api/TagController.php       # GET /api/tags + GET /api/tags/resolve
   Models/
-    Tag.php                  # Eloquent model with scopes
+    Tag.php                     # Eloquent model with scopes
+    SavedPrompt.php             # User-owned prompts
+  Policies/
+    SavedPromptPolicy.php       # ownership checks
 database/
   migrations/
     *_create_tags_table.php
+    *_create_saved_prompts_table.php
   seeders/
-    TagSeeder.php            # ~400 curated offline tags
+    TagSeeder.php               # ~400 curated offline tags
 lang/
-  en/ui.php                  # English UI strings
-  es/ui.php                  # Spanish UI strings
+  en/ui.php                     # English UI strings
+  es/ui.php                     # Spanish UI strings
 resources/
-  css/app.css                # Tailwind v4 + custom components
-  js/app.js                  # Alpine.js bootstrap
+  css/app.css                   # Tailwind v4 + custom components
+  js/app.js                     # Alpine.js bootstrap
   views/
     components/layouts/app.blade.php
-    dashboard/index.blade.php
+    landing/index.blade.php     # Landing + community gallery
+    dashboard/index.blade.php   # Builder (promptBuilder Alpine component)
+    prompts/my-prompts.blade.php
 routes/
-  web.php                    # GET /
-  api.php                    # GET /api/tags
+  web.php                       # GET / + prompt CRUD
+  api.php                       # GET /api/tags + /api/tags/resolve
 ```
+
+---
+
+## Changelog
+
+### 2026-06-27
+- **feat:** Edit prompt image from My Prompts modal (replace existing image with preview)
+- **feat:** "Open in Builder" button loads saved prompt tags into the builder via `/api/tags/resolve`
+- **feat:** Save modal now offers "Update existing" / "Save as new" when editing a loaded prompt
+- **feat:** Update mode shows current image with suggestion to replace if prompt changed significantly
+- **fix:** `AuthorizesRequests` trait added to base `Controller` (was missing in Laravel 11, caused 500 on `authorize()`)
+- **fix:** `savePending` stuck-disabled bug — Alpine `:disabled` binding removed from submit button; reset handled in JS
+- **fix:** `Storage::url()` replaced with relative `/storage/{path}` for cPanel compatibility
+
+### 2026-06-25
+- **feat:** Save Prompt feature — authenticated users can save prompts with name, section, optional image
+- **feat:** My Prompts page with public/private toggle, delete, edit name
+- **feat:** Community gallery on landing page shows public prompts ordered by likes
+- **style:** Gallery and prompt card images use portrait `aspect-[3/4]` ratio
+- **fix:** PATCH/DELETE method spoofing via FormData `_method` field for cPanel Apache compatibility
+- **fix:** `Options +FollowSymLinks` in `.htaccess` to serve storage symlink images on cPanel
+- **fix:** Image URLs use relative `/storage/` path instead of `Storage::url()` to avoid `APP_URL` dependency
 
 ---
 
